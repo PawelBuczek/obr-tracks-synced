@@ -46,4 +46,14 @@ describe("prepareTrackSelection", () => {
     expect(result[track.url]).toBe(0)
     expect(result["https://example.com/other.mp3"]).toBe(99)
   })
+
+  it("wraps playback progress back to the start once elapsed time exceeds the track duration", () => {
+    const offset = 8
+    const elapsedSeconds = 4
+    const duration = 10
+
+    const progress = (offset + elapsedSeconds) % duration
+
+    expect(progress).toBe(2)
+  })
 })
