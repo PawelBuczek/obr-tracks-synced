@@ -12,6 +12,8 @@ After deployment, the manifest will be available at:
 
 https://<your-github-username>.github.io/<your-repo>/manifest.json
 
+in my case: https://pawelbuczek.github.io/obr-tracks-pausing/manifest.json
+
 ## More info
 
 Check out the [store docs](docs/store.md)
