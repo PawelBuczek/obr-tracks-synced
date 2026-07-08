@@ -6,14 +6,13 @@ import { analytics } from "./firebase"
 import { key } from "./key"
 import { now } from "./time"
 import { Track } from "./track"
+import { Action, prepareTrackSelection, TrackProgressMap } from "./playback"
 import { checkTrack, convertToDirectDownloadable, getSeconds } from "./utils"
 
 const path = key("control")
+const progressPath = key("progress")
 
-export enum Action {
-  Play,
-  Pause,
-}
+export { Action }
 
 export interface Message {
   id: string
@@ -24,12 +23,16 @@ export interface Message {
   track: Track
 }
 
-function newPlayMessage(track: Track, duration: number): Message {
+function newPlayMessage(
+  track: Track,
+  duration: number,
+  offset = 0,
+): Message {
   return {
     id: uuidv4(),
     time: now(),
     action: Action.Play,
-    offset: 0,
+    offset,
     duration: duration,
     track: track,
   }
@@ -40,9 +43,12 @@ function pauseCurrentMessage(): Message {
     throw new ObrError("Unable to pause before receiving first message")
   }
 
-  const m = newPlayMessage(currentMessage.track, currentMessage.duration)
+  const m = newPlayMessage(
+    currentMessage.track,
+    currentMessage.duration,
+    currentMessage.offset + getSeconds(currentMessage.time),
+  )
   m.action = Action.Pause
-  m.offset = currentMessage.offset + getSeconds(currentMessage.time)
   return m
 }
 
@@ -59,6 +65,7 @@ function resumeCurrentMessage(): Message {
 
 // message cache
 let currentMessage: Message | undefined = undefined
+let currentProgress: TrackProgressMap = {}
 
 function isMessage(value: unknown): value is Message {
   if (value === undefined) {
@@ -84,11 +91,24 @@ function extractMessage(metadata: Metadata): Message | undefined {
   return undefined
 }
 
+function extractProgress(metadata: Metadata): TrackProgressMap {
+  const data = metadata[progressPath]
+  if (data && typeof data === "object") {
+    return data as TrackProgressMap
+  }
+  return {}
+}
+
 export function onMessage(
   callback: (message: Message | undefined) => void,
 ): () => void {
   const handler = (m: Metadata) => {
     const message = extractMessage(m)
+    const progress = extractProgress(m)
+    if (Object.keys(progress).length > 0) {
+      currentProgress = { ...currentProgress, ...progress }
+    }
+
     if (message?.id !== currentMessage?.id) {
       // A future message means means there is a massive clock skew issue,
       // so don't allow it. Instead, set the message time to now.
@@ -123,6 +143,17 @@ export function play(track: Track) {
   // convert url into direct downloadable if applicable
   fixed.url = convertToDirectDownloadable(fixed.url)
 
+  const { progressMap, offset } = prepareTrackSelection(
+    fixed,
+    currentProgress,
+    currentMessage?.track,
+    currentMessage && currentMessage.action === Action.Play
+      ? currentMessage.offset + getSeconds(currentMessage.time)
+      : undefined,
+    currentMessage?.action,
+  )
+  currentProgress = progressMap
+
   // test the url
   const audio = new Audio()
   audio.preload = "metadata"
@@ -131,7 +162,8 @@ export function play(track: Track) {
   }
   audio.onloadedmetadata = () => {
     OBR.room.setMetadata({
-      [path]: newPlayMessage(fixed, audio.duration),
+      [path]: newPlayMessage(fixed, audio.duration, offset),
+      [progressPath]: currentProgress,
     })
   }
 
@@ -140,8 +172,19 @@ export function play(track: Track) {
 
 export function pause() {
   logEvent(analytics, "pause")
+  if (!currentMessage) {
+    throw new ObrError("Unable to pause before receiving first message")
+  }
+
+  currentProgress = {
+    ...currentProgress,
+    [currentMessage.track.url]:
+      currentMessage.offset + getSeconds(currentMessage.time),
+  }
+
   OBR.room.setMetadata({
     [path]: pauseCurrentMessage(),
+    [progressPath]: currentProgress,
   })
 }
 
@@ -149,6 +192,7 @@ export function resume() {
   logEvent(analytics, "resume")
   OBR.room.setMetadata({
     [path]: resumeCurrentMessage(),
+    [progressPath]: currentProgress,
   })
 }
 
@@ -156,5 +200,6 @@ export function stop() {
   logEvent(analytics, "stop")
   OBR.room.setMetadata({
     [path]: undefined,
+    [progressPath]: currentProgress,
   })
 }
