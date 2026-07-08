@@ -6,7 +6,12 @@ import { analytics } from "./firebase"
 import { key } from "./key"
 import { now } from "./time"
 import { Track } from "./track"
-import { Action, prepareTrackSelection, TrackProgressMap } from "./playback"
+import {
+  Action,
+  prepareTrackSelection,
+  resetTrackProgress,
+  TrackProgressMap,
+} from "./playback"
 import { checkTrack, convertToDirectDownloadable, getSeconds } from "./utils"
 
 const path = key("control")
@@ -198,6 +203,10 @@ export function resume() {
 
 export function stop() {
   logEvent(analytics, "stop")
+  if (currentMessage) {
+    currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
+  }
+
   OBR.room.setMetadata({
     [path]: undefined,
     [progressPath]: currentProgress,

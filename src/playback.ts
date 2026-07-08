@@ -31,3 +31,13 @@ export function prepareTrackSelection(
     offset: nextProgressMap[track.url] ?? 0,
   }
 }
+
+export function resetTrackProgress(
+  progressMap: TrackProgressMap,
+  track: Track,
+): TrackProgressMap {
+  return {
+    ...progressMap,
+    [track.url]: 0,
+  }
+}

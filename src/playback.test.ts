@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { Action, prepareTrackSelection } from "./playback"
+import { Action, prepareTrackSelection, resetTrackProgress } from "./playback"
 import { Track } from "./track"
 
 describe("prepareTrackSelection", () => {
@@ -27,5 +27,23 @@ describe("prepareTrackSelection", () => {
 
     expect(result.progressMap[firstTrack.url]).toBe(42)
     expect(result.offset).toBe(0)
+  })
+
+  it("resets the currently playing track progress when playback is stopped", () => {
+    const track: Track = {
+      title: "Reset Track",
+      url: "https://example.com/reset.mp3",
+      tags: [],
+    }
+
+    const progressMap = {
+      [track.url]: 42,
+      "https://example.com/other.mp3": 99,
+    }
+
+    const result = resetTrackProgress(progressMap, track)
+
+    expect(result[track.url]).toBe(0)
+    expect(result["https://example.com/other.mp3"]).toBe(99)
   })
 })
