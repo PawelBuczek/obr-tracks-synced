@@ -3,12 +3,12 @@
   "description": "Play long looping background music and ambiance from your own library with builtin search and synchronized playback",
   "version": "1.8.0",
   "manifest_version": 1,
-  "icon": "./tracks_256.png",
+  "icon": "/obr-tracks-pausing/tracks_256.png",
   "author": "Pawel Buczek (based on Jordan Cohen's work)",
   "action": {
     "title": "TracksPausing",
-    "icon": "./album_black_24dp.svg",
-    "popover": "./",
+    "icon": "/obr-tracks-pausing/album_black_24dp.svg",
+    "popover": "/obr-tracks-pausing/",
     "width": 400
   }
 }
