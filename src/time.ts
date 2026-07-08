@@ -1,5 +1,7 @@
-import OBR from "@owlbear-rodeo/sdk"
 import { ObrError } from "./errors"
+import { getTimeSyncUrl } from "./timeUrl"
+
+const isBrowser = typeof window !== "undefined"
 
 let skew = 0
 
@@ -8,10 +10,16 @@ export function now() {
 }
 
 export function setSkew(callback: () => void) {
+  if (!isBrowser) {
+    return
+  }
+
+  const OBR = require("@owlbear-rodeo/sdk").default
+
   OBR.onReady(() => {
-    const o = location.origin
-    console.log("fetching time from", o)
-    fetch(o, { cache: "no-store" }).then(r => {
+    const timeSyncUrl = getTimeSyncUrl(window.location.href)
+    console.log("fetching time from", timeSyncUrl)
+    fetch(timeSyncUrl, { cache: "no-store" }).then(r => {
       // get the now time as soon as possible after the fetch
       const now = new Date()
 
