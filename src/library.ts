@@ -22,6 +22,11 @@ function push() {
 }
 
 function runWhenRoomReady(callback: () => void) {
+    console.log("[library] runWhenRoomReady", {
+    isAvailable: OBR.isAvailable,
+    roomReady,
+  })
+
   if (!OBR.isAvailable) {
     return
   }
@@ -32,12 +37,14 @@ function runWhenRoomReady(callback: () => void) {
   }
 
   OBR.onReady(() => {
+    console.log("[library] OBR.onReady fired")
     roomReady = true
     callback()
   })
 }
 
 function readMetadata(metadata: Metadata) {
+  console.log("[library] readMetadata", metadata)
   const libraryData = metadata[libraryPath]
   cachedLibrary = Array.isArray(libraryData) ? (libraryData as Track[]) : []
 
@@ -49,14 +56,17 @@ function readMetadata(metadata: Metadata) {
 }
 
 function setLibrary(tracks: Track[]) {
+  console.log("[library] setLibrary", tracks)
   cachedLibrary = tracks
   runWhenRoomReady(() => {
+    console.log("[library] writing library metadata")
     OBR.room.setMetadata({ [libraryPath]: tracks })
   })
   push()
 }
 
 function setLibraryAndProgress(library: Track[], progressMap: TrackProgressMap) {
+  console.log("[library] setLibraryAndProgress", { library, progressMap, })
   cachedLibrary = library
   cachedProgress = progressMap
   runWhenRoomReady(() => {
@@ -66,6 +76,7 @@ function setLibraryAndProgress(library: Track[], progressMap: TrackProgressMap) 
 }
 
 function getStoredLibrary(): Track[] {
+  console.log("[library] getStoredLibrary()", cachedLibrary)
   return cachedLibrary
 }
 
@@ -74,6 +85,7 @@ function getStoredProgress(): TrackProgressMap {
 }
 
 function initializeRoomSync() {
+  console.log("[library] initializeRoomSync")
   if (roomInitialized) {
     return
   }
@@ -81,11 +93,13 @@ function initializeRoomSync() {
   roomInitialized = true
   runWhenRoomReady(() => {
     OBR.room.getMetadata().then(metadata => {
+      console.log("[library] getMetadata()", metadata)
       readMetadata(metadata)
       push()
     })
 
     OBR.room.onMetadataChange(metadata => {
+      console.log("[library] onMetadataChange()", metadata)
       readMetadata(metadata)
       push()
     })
