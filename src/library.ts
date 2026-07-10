@@ -106,13 +106,13 @@ function initializeRoomSync(): Promise<void> {
       console.log("[library] room ready, loading metadata")
 
       OBR.room.onMetadataChange(metadata => {
-        console.log("[library] onMetadataChange()", metadata)
+        console.trace("[library] onMetadataChange in room creation()", metadata)
         readMetadata(metadata)
         push()
       })
 
       OBR.room.getMetadata().then(metadata => {
-        console.log("[library] getMetadata()", metadata)
+        console.log("[library] getMetadata in room creation()", metadata)
         readMetadata(metadata)
         push()
         resolve()
