@@ -151,6 +151,7 @@ export function onMessage(
   }
 
   OBR.room.getMetadata().then(handler)
+  console.log("[mb] onMessage() registered and callingOnMetadataChange")
   return OBR.room.onMetadataChange(handler)
 }
 
