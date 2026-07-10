@@ -14,9 +14,9 @@ import { Virtuoso } from "react-virtuoso"
 import { ConfirmPayload } from "./Confirm"
 import { deleteTrackFromLibrary } from "../library"
 import { pause, play, resume } from "../mb"
-import { Action } from "../playback"
 import { Track } from "../track"
 import { useMessage } from "./MessageProvider"
+import { getTrackListClickAction } from "../trackListActions"
 
 interface TrackCardProps {
   track: Track
@@ -66,16 +66,16 @@ function TrackCard(props: TrackCardProps) {
   ))
 
   const handleTrackClick = () => {
-    if (currentMessage?.track.url === track.url) {
-      if (currentMessage.action === Action.Pause) {
+    switch (getTrackListClickAction(track, currentMessage)) {
+      case "resume":
         resume()
-      } else {
+        return
+      case "pause":
         pause()
-      }
-      return
+        return
+      default:
+        play(track)
     }
-
-    play(track)
   }
 
   return (

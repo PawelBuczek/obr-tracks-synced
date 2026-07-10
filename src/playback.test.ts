@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest"
 import {
   Action,
+  getPlaybackOffset,
   getTrackInteractionAction,
   prepareTrackSelection,
   resetTrackProgress,
 } from "./playback"
 import { Track } from "./track"
+import { getTrackListClickAction } from "./trackListActions"
 
 describe("prepareTrackSelection", () => {
   it("saves the current track progress when switching tracks and resumes the new one from its saved offset", () => {
@@ -72,7 +74,53 @@ describe("prepareTrackSelection", () => {
     expect(getTrackInteractionAction(track, track, Action.Play)).toBe("pause")
     expect(getTrackInteractionAction(track, track, Action.Pause)).toBe("resume")
     expect(
-      getTrackInteractionAction(track, { ...track, url: "https://example.com/other.mp3" }, Action.Play),
+      getTrackInteractionAction(
+        track,
+        { ...track, url: "https://example.com/other.mp3" },
+        Action.Play,
+      ),
     ).toBe("play")
+  })
+
+  it("preserves the elapsed offset when pausing and resuming", () => {
+    const offset = 12
+    const startedAt = new Date("2024-01-01T00:00:00.000Z")
+    const now = new Date("2024-01-01T00:00:10.000Z")
+
+    expect(getPlaybackOffset(offset, startedAt, now)).toBe(22)
+  })
+
+  it("does not save progress when switching away from a paused track", () => {
+    const currentTrack: Track = {
+      title: "Paused Track",
+      url: "https://example.com/paused.mp3",
+      tags: [],
+    }
+    const nextTrack: Track = {
+      title: "Next Track",
+      url: "https://example.com/next.mp3",
+      tags: [],
+    }
+
+    const result = prepareTrackSelection(nextTrack, {}, currentTrack, 33, Action.Pause)
+
+    expect(result.progressMap).toEqual({})
+    expect(result.offset).toBe(0)
+  })
+
+  it("routes the track-list click to pause, resume, or play based on the active track", () => {
+    const track: Track = {
+      title: "List Track",
+      url: "https://example.com/list.mp3",
+      tags: [],
+    }
+
+    expect(getTrackListClickAction(track, undefined)).toBe("play")
+    expect(
+      getTrackListClickAction(track, { track, action: Action.Play }),
+    ).toBe("pause")
+    expect(
+      getTrackListClickAction(track, { track, action: Action.Pause }),
+    ).toBe("resume")
   })
 })

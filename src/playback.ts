@@ -9,6 +9,14 @@ export interface TrackProgressMap {
   [trackUrl: string]: number
 }
 
+export function getPlaybackOffset(
+  offset: number,
+  time: Date,
+  referenceTime: Date = new Date(),
+): number {
+  return offset + (referenceTime.getTime() - time.getTime()) / 1000
+}
+
 export function prepareTrackSelection(
   track: Track,
   progressMap: TrackProgressMap,

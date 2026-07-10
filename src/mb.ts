@@ -8,11 +8,12 @@ import { now } from "./time"
 import { Track } from "./track"
 import {
   Action,
+  getPlaybackOffset,
   prepareTrackSelection,
   resetTrackProgress,
   TrackProgressMap,
 } from "./playback"
-import { checkTrack, convertToDirectDownloadable, getSeconds } from "./utils"
+import { checkTrack, convertToDirectDownloadable } from "./utils"
 
 const path = key("control")
 const progressPath = key("progress")
@@ -105,7 +106,7 @@ function extractProgress(metadata: Metadata): TrackProgressMap {
 }
 
 function getCurrentOffset(message: Message) {
-    return message.offset + getSeconds(message.time)
+  return getPlaybackOffset(message.offset, message.time, now())
 }
 
 export function onMessage(
