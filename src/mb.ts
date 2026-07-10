@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
+import { updateMetadata } from "./metadataHelper"
 import { now } from "./time"
 import { Track } from "./track"
 import {
@@ -185,7 +186,7 @@ export function play(track: Track) {
     throw new ObrError("Audio error: Unable to play track", fixed)
   }
   audio.onloadedmetadata = () => {
-    OBR.room.setMetadata({
+    updateMetadata({
       [path]: newPlayMessage(fixed, audio.duration, offset),
       [progressPath]: currentProgress,
     })
@@ -206,7 +207,7 @@ export function pause() {
       getCurrentOffset(currentMessage),
   }
 
-  OBR.room.setMetadata({
+  updateMetadata({
     [path]: pauseCurrentMessage(),
     [progressPath]: currentProgress,
   })
@@ -214,7 +215,7 @@ export function pause() {
 
 export function resume() {
   logEvent(analytics, "resume")
-  OBR.room.setMetadata({
+  updateMetadata({
     [path]: resumeCurrentMessage(),
     [progressPath]: currentProgress,
   })
@@ -226,7 +227,7 @@ export function stop() {
     currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
   }
 
-  OBR.room.setMetadata({
+  updateMetadata({
     [path]: undefined,
     [progressPath]: currentProgress,
   })

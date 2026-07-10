@@ -5,6 +5,7 @@ import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
 import { stop } from "./mb"
+import { updateMetadata } from "./metadataHelper"
 import { removeTrackProgress, TrackProgressMap } from "./playback"
 import { Track } from "./track"
 import { checkTrack } from "./utils"
@@ -19,9 +20,6 @@ let cachedProgress: TrackProgressMap = {}
 
 let roomReady = false
 let roomSyncPromise: Promise<void> | undefined
-
-// Serialize all metadata writes
-let metadataWriteQueue = Promise.resolve()
 
 function push() {
   eventEmitter.emit(libraryPath, getLibrary())
@@ -61,14 +59,6 @@ function readMetadata(metadata: Metadata) {
       : {}
 }
 
-function writeMetadata(metadata: Metadata) {
-  metadataWriteQueue = metadataWriteQueue.then(async () => {
-    await OBR.room.setMetadata(metadata)
-  })
-
-  return metadataWriteQueue
-}
-
 async function setLibrary(tracks: Track[]) {
   console.trace("[library] setLibrary", tracks)
 
@@ -78,7 +68,7 @@ async function setLibrary(tracks: Track[]) {
 
   console.log("[library] writing library metadata")
 
-  await writeMetadata({
+ await updateMetadata({
     [libraryPath]: cachedLibrary,
   })
 
@@ -101,7 +91,7 @@ async function setLibraryAndProgress(
 
   console.log("[library] writing library + progress metadata")
 
-  await writeMetadata({
+  await updateMetadata({
     [libraryPath]: cachedLibrary,
     [progressPath]: cachedProgress,
   })
