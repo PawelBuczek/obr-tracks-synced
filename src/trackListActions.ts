@@ -1,10 +1,15 @@
 import { Action } from "./playback"
 import { Track } from "./track"
-import { convertToDirectDownloadable } from "./utils"
 
 function getComparableTrackUrl(track: Track): string {
   try {
-    return convertToDirectDownloadable(track.url)
+    const url = new URL(track.url)
+    if (url.hostname.endsWith("dropbox.com")) {
+      url.searchParams.set("dl", "1")
+      url.hostname = "dl.dropboxusercontent.com"
+      return url.toString()
+    }
+    return track.url
   } catch {
     return track.url
   }
