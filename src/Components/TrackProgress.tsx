@@ -62,6 +62,7 @@ export function TrackProgress() {
         height: (theme) => theme.spacing(5),
       }}
     >
+      <TimeTypography seconds={progress} />
       <LinearProgress
         variant="determinate"
         value={
@@ -71,7 +72,6 @@ export function TrackProgress() {
         }
         sx={{ flex: 1 }}
       />
-      <TimeTypography seconds={progress} />
       <TimeTypography seconds={currentMessage.duration} />
     </Stack>
   )
