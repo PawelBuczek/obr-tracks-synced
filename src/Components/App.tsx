@@ -98,7 +98,7 @@ export function App() {
               Tracks
             </Typography>
 
-            <Stack spacing={0} direction="row" alignItems="center" flex={9}>
+            <Stack spacing={0} direction="row" sx={{ alignItems: "center", flex: 9 }}>
               <VolumeSlider onVolume={setVolume} disabled={mute} />
               <MuteButton onMute={setMute} />
             </Stack>
@@ -134,10 +134,10 @@ export function App() {
         {/* only the gm needs the rest of the app */}
         <GMOnly>
           {/* padding */}
-          <Box height={48} />
-          <Box height={80} />
+          <Box sx={{ height: 48 }} />
+          <Box sx={{ height: 80 }} />
           <Collapse in={currentMessage !== undefined}>
-            <Box height={144} />
+            <Box sx={{ height: 144 }} />
           </Collapse>
 
           <TrackDialog

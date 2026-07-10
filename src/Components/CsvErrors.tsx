@@ -28,7 +28,7 @@ export function CsvErrors(props: Props) {
   return (
     <Dialog fullWidth open={errors.length > 0} onClose={onClose}>
       <DialogTitle sx={{ flexGrow: 1 }}>
-        <Stack alignItems={"center"} direction={"row"} spacing={1}>
+        <Stack direction={"row"} spacing={1} sx={{ alignItems: "center" }}>
           <ErrorOutlineRoundedIcon color="error" />
           <div>CSV Issues</div>
         </Stack>

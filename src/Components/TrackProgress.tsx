@@ -1,5 +1,4 @@
 import {
-  LinearProgress,
   Skeleton,
   Stack,
   Typography,
@@ -55,17 +54,14 @@ export function TrackProgress() {
   return (
     <Stack
       spacing={2}
-      direction={"row"}
-      justifyContent={"space-between"}
-      alignItems={"center"}
-      height={5}
+      direction="row"
+      sx={{
+        justifyContent: "space-between",
+        alignItems: "center",
+        height: (theme) => theme.spacing(5),
+      }}
     >
       <TimeTypography seconds={progress} />
-      <LinearProgress
-        sx={{ borderRadius: 1, width: "100%" }}
-        variant="determinate"
-        value={(progress / currentMessage.duration) * 100}
-      />
       <TimeTypography seconds={currentMessage.duration} />
     </Stack>
   )

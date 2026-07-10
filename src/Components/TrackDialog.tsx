@@ -180,16 +180,16 @@ export function TrackDialog(props: Props) {
               dispatch({ type: ActionType.setTags, payload: v })
             }
             options={tagSuggestions}
-            renderTags={(value: readonly string[], getTagProps) =>
-              value.map((option: string, index: number) => (
+            renderValue={(value, getItemProps) =>
+              value.map((option, index) => (
                 <Chip
                   variant="outlined"
                   label={option}
-                  {...getTagProps({ index })}
+                  {...getItemProps({ index })}
                 />
               ))
             }
-            renderInput={params => (
+            renderInput={(params) => (
               <TextField {...params} variant="standard" label="Tags" />
             )}
           />

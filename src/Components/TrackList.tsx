@@ -10,7 +10,6 @@ import {
 } from "@mui/material"
 import Fuse from "fuse.js"
 import { useState } from "react"
-import { Virtuoso } from "react-virtuoso"
 import { ConfirmPayload } from "./Confirm"
 import { deleteTrackFromLibrary } from "../library"
 import { pause, play, resume } from "../mb"
@@ -137,21 +136,19 @@ interface Props {
 
 export function TrackList(props: Props) {
   const { editTrack, searchResults, confirm } = props
+
   return (
-    <Virtuoso
-      useWindowScroll
-      data={searchResults}
-      itemContent={(_, result) => (
-        <ListItem component={"div"}>
+    <>
+      {searchResults.map(result => (
+        <ListItem key={result.item.url} component="div">
           <TrackCard
-            key={result.item.url}
             track={result.item}
             editTrack={editTrack}
             confirm={confirm}
             matches={result.matches}
           />
         </ListItem>
-      )}
-    />
+      ))}
+    </>
   )
 }
