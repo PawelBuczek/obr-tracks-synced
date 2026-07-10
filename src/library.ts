@@ -15,31 +15,26 @@ const eventEmitter = new EventEmitter()
 let cachedLibrary: Track[] = []
 let cachedProgress: TrackProgressMap = {}
 let roomReady = false
-let roomInitialized = false
+let roomSyncPromise: Promise<void> | undefined
 
 function push() {
   eventEmitter.emit(libraryPath, getLibrary())
 }
 
-function runWhenRoomReady(callback: () => void) {
-    console.log("[library] runWhenRoomReady", {
-    isAvailable: OBR.isAvailable,
-    roomReady,
-  })
-
+function runWhenRoomReady(): Promise<void> {
   if (!OBR.isAvailable) {
-    return
+    return Promise.resolve()
   }
 
   if (roomReady) {
-    callback()
-    return
+    return Promise.resolve()
   }
 
-  OBR.onReady(() => {
-    console.log("[library] OBR.onReady fired")
-    roomReady = true
-    callback()
+  return new Promise(resolve => {
+    OBR.onReady(() => {
+      roomReady = true
+      resolve()
+    })
   })
 }
 
@@ -55,23 +50,40 @@ function readMetadata(metadata: Metadata) {
       : {}
 }
 
-function setLibrary(tracks: Track[]) {
+async function setLibrary(tracks: Track[]) {
   console.trace("[library] setLibrary", tracks)
+
   cachedLibrary = tracks
-  runWhenRoomReady(() => {
-    console.log("[library] writing library metadata")
-    OBR.room.setMetadata({ [libraryPath]: tracks })
-  })
+
+  await runWhenRoomReady()
+
+  console.log("[library] writing library metadata")
+  await OBR.room.setMetadata({ [libraryPath]: tracks })
+
   push()
 }
 
-function setLibraryAndProgress(library: Track[], progressMap: TrackProgressMap) {
-  console.trace("[library] setLibraryAndProgress", { library, progressMap })
+async function setLibraryAndProgress(
+  library: Track[],
+  progressMap: TrackProgressMap,
+) {
+  console.trace("[library] setLibraryAndProgress", {
+    library,
+    progressMap,
+  })
+
   cachedLibrary = library
   cachedProgress = progressMap
-  runWhenRoomReady(() => {
-    OBR.room.setMetadata({ [libraryPath]: library, [progressPath]: progressMap })
+
+  await runWhenRoomReady()
+
+  console.log("[library] writing library + progress metadata")
+
+  await OBR.room.setMetadata({
+    [libraryPath]: library,
+    [progressPath]: progressMap,
   })
+
   push()
 }
 
@@ -84,43 +96,54 @@ function getStoredProgress(): TrackProgressMap {
   return cachedProgress
 }
 
-function initializeRoomSync() {
-  console.log("[library] initializeRoomSync")
-  if (roomInitialized) {
-    return
+function initializeRoomSync(): Promise<void> {
+  if (roomSyncPromise) {
+    return roomSyncPromise
   }
 
-  roomInitialized = true
-  runWhenRoomReady(() => {
-    OBR.room.getMetadata().then(metadata => {
-      console.log("[library] getMetadata()", metadata)
-      readMetadata(metadata)
-      push()
-    })
+  roomSyncPromise = new Promise(resolve => {
+  runWhenRoomReady().then(() => {
+      console.log("[library] room ready, loading metadata")
 
-    OBR.room.onMetadataChange(metadata => {
-      console.log("[library] onMetadataChange()", metadata)
-      readMetadata(metadata)
-      push()
+      OBR.room.onMetadataChange(metadata => {
+        console.log("[library] onMetadataChange()", metadata)
+        readMetadata(metadata)
+        push()
+      })
+
+      OBR.room.getMetadata().then(metadata => {
+        console.log("[library] getMetadata()", metadata)
+        readMetadata(metadata)
+        push()
+        resolve()
+      })
     })
   })
+
+  return roomSyncPromise
 }
 
-initializeRoomSync()
+const roomSyncReady = initializeRoomSync()
 
 export function addTrackToLibrary(track: Track) {
   logEvent(analytics, "add_track")
-  mergeLibrary([track])
+
+  roomSyncReady.then(() => {
+    mergeLibrary([track])
+  })
 }
 
 export function deleteTrackFromLibrary(track: Track) {
   logEvent(analytics, "delete_track")
-  const currentLibrary = getLibrary()
-  const nextLibrary = currentLibrary.filter(t => t.url !== track.url)
-  const nextProgress = removeTrackProgress(getStoredProgress(), track)
 
-  stop()
-  setLibraryAndProgress(nextLibrary, nextProgress)
+  roomSyncReady.then(() => {
+    const currentLibrary = getLibrary()
+    const nextLibrary = currentLibrary.filter(t => t.url !== track.url)
+    const nextProgress = removeTrackProgress(getStoredProgress(), track)
+
+    stop()
+    setLibraryAndProgress(nextLibrary, nextProgress)
+  })
 }
 
 export function mergeLibrary(tracks: Track[]) {
@@ -156,30 +179,40 @@ export function getLibrary(): Track[] {
 export function clearLibrary() {
   console.trace("[library] clearLibrary")
   logEvent(analytics, "clear_tracks")
-  setLibraryAndProgress([], {})
+
+  roomSyncReady.then(() => {
+    setLibraryAndProgress([], {})
+  })
 }
 
 export function onLibraryChange(
   callback: (tracks: Track[]) => void,
 ): () => void {
-  callback(getLibrary())
+  roomSyncReady.then(() => {
+    callback(getLibrary())
+  })
+
   eventEmitter.addListener(libraryPath, callback)
+
   return () => eventEmitter.removeListener(libraryPath, callback)
 }
 
 export function cleanLibrary() {
   console.trace("[library] cleanLibrary")
-  setLibrary(
-    getLibrary().map(t => {
-      const { fixed, validation } = checkTrack(t)
-      if (validation) {
-        console.warn(
-          "Bad track in library, you should probably delete it",
-          fixed,
-          validation,
-        )
-      }
-      return fixed
-    }),
-  )
+
+  roomSyncReady.then(() => {
+    setLibrary(
+      getLibrary().map(t => {
+        const { fixed, validation } = checkTrack(t)
+        if (validation) {
+          console.warn(
+            "Bad track in library, you should probably delete it",
+            fixed,
+            validation,
+          )
+        }
+        return fixed
+      }),
+    )
+  })
 }
