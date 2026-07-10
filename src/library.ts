@@ -4,7 +4,7 @@ import { logEvent } from "firebase/analytics"
 import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
-import { clearProgress, stop } from "./mb"
+import { stop } from "./mb"
 import { removeTrackProgress, TrackProgressMap } from "./playback"
 import { Track } from "./track"
 import { checkTrack } from "./utils"
@@ -136,13 +136,13 @@ export function addTrackToLibrary(track: Track) {
 export function deleteTrackFromLibrary(track: Track) {
   logEvent(analytics, "delete_track")
 
-  roomSyncReady.then(() => {
+  roomSyncReady.then(async () => {
     const currentLibrary = getLibrary()
     const nextLibrary = currentLibrary.filter(t => t.url !== track.url)
     const nextProgress = removeTrackProgress(getStoredProgress(), track)
 
     stop()
-    setLibraryAndProgress(nextLibrary, nextProgress)
+    await setLibraryAndProgress(nextLibrary, nextProgress)
   })
 }
 
@@ -180,9 +180,9 @@ export function clearLibrary() {
   console.trace("[library] clearLibrary")
   logEvent(analytics, "clear_tracks")
 
-  roomSyncReady.then(() => {
-    clearProgress()
-    setLibraryAndProgress([], {})
+  roomSyncReady.then(async () => {
+    stop()
+    await setLibraryAndProgress([], {})
   })
 }
 

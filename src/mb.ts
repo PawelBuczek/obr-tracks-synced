@@ -230,11 +230,3 @@ export function stop() {
     [progressPath]: currentProgress,
   })
 }
-
-export function clearProgress() {
-  currentProgress = {}
-
-  OBR.room.setMetadata({
-    [progressPath]: {},
-  })
-}
