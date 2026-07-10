@@ -11,11 +11,17 @@ import { checkTrack } from "./utils"
 
 const libraryPath = key("library")
 const progressPath = key("progress")
+
 const eventEmitter = new EventEmitter()
+
 let cachedLibrary: Track[] = []
 let cachedProgress: TrackProgressMap = {}
+
 let roomReady = false
 let roomSyncPromise: Promise<void> | undefined
+
+// Serialize all metadata writes
+let metadataWriteQueue = Promise.resolve()
 
 function push() {
   eventEmitter.emit(libraryPath, getLibrary())
@@ -40,25 +46,41 @@ function runWhenRoomReady(): Promise<void> {
 
 function readMetadata(metadata: Metadata) {
   console.log("[library] readMetadata", metadata)
+
   const libraryData = metadata[libraryPath]
-  cachedLibrary = Array.isArray(libraryData) ? (libraryData as Track[]) : []
+
+  cachedLibrary = Array.isArray(libraryData)
+    ? [...(libraryData as Track[])]
+    : []
 
   const progressData = metadata[progressPath]
+
   cachedProgress =
     progressData && typeof progressData === "object"
-      ? (progressData as TrackProgressMap)
+      ? { ...(progressData as TrackProgressMap) }
       : {}
+}
+
+function writeMetadata(metadata: Metadata) {
+  metadataWriteQueue = metadataWriteQueue.then(async () => {
+    await OBR.room.setMetadata(metadata)
+  })
+
+  return metadataWriteQueue
 }
 
 async function setLibrary(tracks: Track[]) {
   console.trace("[library] setLibrary", tracks)
 
-  cachedLibrary = tracks
+  cachedLibrary = [...tracks]
 
   await runWhenRoomReady()
 
   console.log("[library] writing library metadata")
-  await OBR.room.setMetadata({ [libraryPath]: tracks })
+
+  await writeMetadata({
+    [libraryPath]: cachedLibrary,
+  })
 
   push()
 }
@@ -72,16 +94,16 @@ async function setLibraryAndProgress(
     progressMap,
   })
 
-  cachedLibrary = library
-  cachedProgress = progressMap
+  cachedLibrary = [...library]
+  cachedProgress = { ...progressMap }
 
   await runWhenRoomReady()
 
   console.log("[library] writing library + progress metadata")
 
-  await OBR.room.setMetadata({
-    [libraryPath]: library,
-    [progressPath]: progressMap,
+  await writeMetadata({
+    [libraryPath]: cachedLibrary,
+    [progressPath]: cachedProgress,
   })
 
   push()
@@ -102,19 +124,28 @@ function initializeRoomSync(): Promise<void> {
   }
 
   roomSyncPromise = new Promise(resolve => {
-  runWhenRoomReady().then(() => {
+    runWhenRoomReady().then(() => {
       console.log("[library] room ready, loading metadata")
 
       OBR.room.onMetadataChange(metadata => {
-        console.trace("[library] onMetadataChange in room creation()", metadata)
+        console.trace(
+          "[library] onMetadataChange",
+          metadata,
+        )
+
         readMetadata(metadata)
         push()
       })
 
       OBR.room.getMetadata().then(metadata => {
-        console.log("[library] getMetadata in room creation()", metadata)
+        console.log(
+          "[library] getMetadata in room creation()",
+          metadata,
+        )
+
         readMetadata(metadata)
         push()
+
         resolve()
       })
     })
@@ -138,38 +169,66 @@ export function deleteTrackFromLibrary(track: Track) {
 
   roomSyncReady.then(async () => {
     const currentLibrary = getLibrary()
-    const nextLibrary = currentLibrary.filter(t => t.url !== track.url)
-    const nextProgress = removeTrackProgress(getStoredProgress(), track)
+
+    const nextLibrary = currentLibrary.filter(
+      t => t.url !== track.url,
+    )
+
+    const nextProgress = removeTrackProgress(
+      getStoredProgress(),
+      track,
+    )
 
     stop()
-    await setLibraryAndProgress(nextLibrary, nextProgress)
+
+    await setLibraryAndProgress(
+      nextLibrary,
+      nextProgress,
+    )
   })
 }
 
 export function mergeLibrary(tracks: Track[]) {
   console.trace("[library] mergeLibrary", tracks)
+
   const currentLibrary = getLibrary()
+
+  const updatedLibrary = currentLibrary.map(track => ({
+    ...track,
+  }))
+
   const newTracks: Track[] = []
+
   tracks.forEach(t => {
-    let updated = false
-    currentLibrary.forEach(currentTrack => {
-      const { fixed, validation } = checkTrack(t)
-      if (validation) {
-        throw new ObrError("Track validation failed", fixed, validation)
-      }
+    const { fixed, validation } = checkTrack(t)
 
-      if (currentTrack.url === fixed.url) {
-        currentTrack.title = fixed.title
-        currentTrack.tags = fixed.tags
-        updated = true
-      }
-    })
+    if (validation) {
+      throw new ObrError(
+        "Track validation failed",
+        fixed,
+        validation,
+      )
+    }
 
-    if (!updated) {
-      newTracks.push(t)
+    const existingIndex = updatedLibrary.findIndex(
+      currentTrack => currentTrack.url === fixed.url,
+    )
+
+    if (existingIndex >= 0) {
+      updatedLibrary[existingIndex] = {
+        ...updatedLibrary[existingIndex],
+        title: fixed.title,
+        tags: fixed.tags,
+      }
+    } else {
+      newTracks.push(fixed)
     }
   })
-  setLibrary([...newTracks, ...currentLibrary])
+
+  setLibrary([
+    ...newTracks,
+    ...updatedLibrary,
+  ])
 }
 
 export function getLibrary(): Track[] {
@@ -178,10 +237,12 @@ export function getLibrary(): Track[] {
 
 export function clearLibrary() {
   console.trace("[library] clearLibrary")
+
   logEvent(analytics, "clear_tracks")
 
   roomSyncReady.then(async () => {
     stop()
+
     await setLibraryAndProgress([], {})
   })
 }
@@ -193,9 +254,16 @@ export function onLibraryChange(
     callback(getLibrary())
   })
 
-  eventEmitter.addListener(libraryPath, callback)
+  eventEmitter.addListener(
+    libraryPath,
+    callback,
+  )
 
-  return () => eventEmitter.removeListener(libraryPath, callback)
+  return () =>
+    eventEmitter.removeListener(
+      libraryPath,
+      callback,
+    )
 }
 
 export function cleanLibrary() {
@@ -203,8 +271,9 @@ export function cleanLibrary() {
 
   roomSyncReady.then(() => {
     setLibrary(
-      getLibrary().map(t => {
-        const { fixed, validation } = checkTrack(t)
+      getLibrary().map(track => {
+        const { fixed, validation } = checkTrack(track)
+
         if (validation) {
           console.warn(
             "Bad track in library, you should probably delete it",
@@ -212,6 +281,7 @@ export function cleanLibrary() {
             validation,
           )
         }
+
         return fixed
       }),
     )
