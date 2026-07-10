@@ -222,13 +222,20 @@ export function resume() {
 }
 
 export function stop() {
-  logEvent(analytics, "stop")
-  if (currentMessage) {
-    currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
-  }
+   stopPlayback()
 
   updateMetadata({
     [path]: undefined,
     [progressPath]: currentProgress,
   })
+}
+
+export function stopPlayback() {
+  logEvent(analytics, "stop")
+
+  if (currentMessage) {
+    currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
+  }
+
+  currentMessage = undefined
 }

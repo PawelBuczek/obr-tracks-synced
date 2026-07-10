@@ -4,7 +4,7 @@ import { logEvent } from "firebase/analytics"
 import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
-import { stop } from "./mb"
+import { stop, stopPlayback } from "./mb"
 import { updateMetadata } from "./metadataHelper"
 import { removeTrackProgress, TrackProgressMap } from "./playback"
 import { Track } from "./track"
@@ -169,7 +169,7 @@ export function deleteTrackFromLibrary(track: Track) {
       track,
     )
 
-    stop()
+    stopPlayback()
 
     await setLibraryAndProgress(
       nextLibrary,
@@ -231,7 +231,7 @@ export function clearLibrary() {
   logEvent(analytics, "clear_tracks")
 
   roomSyncReady.then(async () => {
-    stop()
+    stopPlayback()
 
     await setLibraryAndProgress([], {})
   })
