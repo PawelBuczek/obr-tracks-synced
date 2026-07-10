@@ -56,7 +56,7 @@ function readMetadata(metadata: Metadata) {
 }
 
 function setLibrary(tracks: Track[]) {
-  console.log("[library] setLibrary", tracks)
+  console.trace("[library] setLibrary", tracks)
   cachedLibrary = tracks
   runWhenRoomReady(() => {
     console.log("[library] writing library metadata")
@@ -66,7 +66,7 @@ function setLibrary(tracks: Track[]) {
 }
 
 function setLibraryAndProgress(library: Track[], progressMap: TrackProgressMap) {
-  console.log("[library] setLibraryAndProgress", { library, progressMap, })
+  console.trace("[library] setLibraryAndProgress", { library, progressMap })
   cachedLibrary = library
   cachedProgress = progressMap
   runWhenRoomReady(() => {
@@ -124,6 +124,7 @@ export function deleteTrackFromLibrary(track: Track) {
 }
 
 export function mergeLibrary(tracks: Track[]) {
+  console.trace("[library] mergeLibrary", tracks)
   const currentLibrary = getLibrary()
   const newTracks: Track[] = []
   tracks.forEach(t => {
@@ -153,6 +154,7 @@ export function getLibrary(): Track[] {
 }
 
 export function clearLibrary() {
+  console.trace("[library] clearLibrary")
   logEvent(analytics, "clear_tracks")
   setLibraryAndProgress([], {})
 }
@@ -165,8 +167,8 @@ export function onLibraryChange(
   return () => eventEmitter.removeListener(libraryPath, callback)
 }
 
-// clean the library
 export function cleanLibrary() {
+  console.trace("[library] cleanLibrary")
   setLibrary(
     getLibrary().map(t => {
       const { fixed, validation } = checkTrack(t)
