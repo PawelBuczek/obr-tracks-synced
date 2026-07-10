@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { Action, prepareTrackSelection, resetTrackProgress } from "./playback"
+import {
+  Action,
+  getTrackInteractionAction,
+  prepareTrackSelection,
+  resetTrackProgress,
+} from "./playback"
 import { Track } from "./track"
 
 describe("prepareTrackSelection", () => {
@@ -55,5 +60,19 @@ describe("prepareTrackSelection", () => {
     const progress = (offset + elapsedSeconds) % duration
 
     expect(progress).toBe(2)
+  })
+
+  it("toggles pause and resume when the clicked track is already active", () => {
+    const track: Track = {
+      title: "Active Track",
+      url: "https://example.com/active.mp3",
+      tags: [],
+    }
+
+    expect(getTrackInteractionAction(track, track, Action.Play)).toBe("pause")
+    expect(getTrackInteractionAction(track, track, Action.Pause)).toBe("resume")
+    expect(
+      getTrackInteractionAction(track, { ...track, url: "https://example.com/other.mp3" }, Action.Play),
+    ).toBe("play")
   })
 })

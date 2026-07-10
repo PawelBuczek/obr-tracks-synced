@@ -41,3 +41,15 @@ export function resetTrackProgress(
     [track.url]: 0,
   }
 }
+
+export function getTrackInteractionAction(
+  clickedTrack: Track,
+  activeTrack: Track | undefined,
+  activeAction: Action | undefined,
+): "play" | "pause" | "resume" {
+  if (activeTrack && activeTrack.url === clickedTrack.url) {
+    return activeAction === Action.Pause ? "resume" : "pause"
+  }
+
+  return "play"
+}

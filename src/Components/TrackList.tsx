@@ -13,8 +13,10 @@ import { useState } from "react"
 import { Virtuoso } from "react-virtuoso"
 import { ConfirmPayload } from "./Confirm"
 import { deleteTrackFromLibrary } from "../library"
-import { play } from "../mb"
+import { pause, play, resume } from "../mb"
+import { Action } from "../playback"
 import { Track } from "../track"
+import { useMessage } from "./MessageProvider"
 
 interface TrackCardProps {
   track: Track
@@ -25,6 +27,7 @@ interface TrackCardProps {
 
 function TrackCard(props: TrackCardProps) {
   const { track, editTrack, confirm, matches } = props
+  const currentMessage = useMessage()
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number
     mouseY: number
@@ -62,9 +65,22 @@ function TrackCard(props: TrackCardProps) {
     />
   ))
 
+  const handleTrackClick = () => {
+    if (currentMessage?.track.url === track.url) {
+      if (currentMessage.action === Action.Pause) {
+        resume()
+      } else {
+        pause()
+      }
+      return
+    }
+
+    play(track)
+  }
+
   return (
     <Card sx={{ minWidth: "100%" }} onContextMenu={handleContextMenu}>
-      <CardActionArea disableRipple={false} onClick={() => play(track)}>
+      <CardActionArea disableRipple={false} onClick={handleTrackClick}>
         <CardHeader
           subheader={track.title}
           subheaderTypographyProps={{
