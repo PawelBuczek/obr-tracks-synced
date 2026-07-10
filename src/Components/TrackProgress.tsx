@@ -10,7 +10,7 @@ import { getSeconds } from "../utils"
 import { useMessage } from "./MessageProvider"
 
 function secondsToDisplay(seconds: number): string {
-  return new Date(seconds * 1000).toISOString().substring(14, 19)
+  return new Date(seconds * 1000).toISOString().substring(11, 19)
 }
 
 function TimeTypography(props: { seconds: number }) {
