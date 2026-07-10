@@ -11,7 +11,6 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@fontsource/roboto": "^5.2.10",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "@owlbear-rodeo/sdk": "^2.4.0",
@@ -33,8 +32,6 @@
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
-    "firebase-tools": "^15.23.0",
-    "prettier": "3.1.0",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vitest": "^4.1.10"

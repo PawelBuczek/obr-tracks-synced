@@ -8,13 +8,13 @@ import {
   DialogTitle,
   List,
   ListItem,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableRow,
   useTheme,
 } from "@mui/material"
-import { Stack } from "@mui/system"
 import { CsvError } from "../csv"
 
 interface Props {
