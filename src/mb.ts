@@ -51,7 +51,7 @@ function pauseCurrentMessage(): Message {
   const m = newPlayMessage(
     currentMessage.track,
     currentMessage.duration,
-    currentMessage.offset + getSeconds(currentMessage.time),
+    getCurrentOffset(currentMessage),
   )
   m.action = Action.Pause
   return m
@@ -104,6 +104,10 @@ function extractProgress(metadata: Metadata): TrackProgressMap {
   return {}
 }
 
+function getCurrentOffset(message: Message) {
+    return message.offset + getSeconds(message.time)
+}
+
 export function onMessage(
   callback: (message: Message | undefined) => void,
 ): () => void {
@@ -111,7 +115,7 @@ export function onMessage(
     const message = extractMessage(m)
     const progress = extractProgress(m)
     if (Object.keys(progress).length > 0) {
-      currentProgress = { ...currentProgress, ...progress }
+      currentProgress = progress
     }
 
     if (message?.id !== currentMessage?.id) {
@@ -153,7 +157,7 @@ export function play(track: Track) {
     currentProgress,
     currentMessage?.track,
     currentMessage && currentMessage.action === Action.Play
-      ? currentMessage.offset + getSeconds(currentMessage.time)
+      ? getCurrentOffset(currentMessage)
       : undefined,
     currentMessage?.action,
   )
@@ -184,7 +188,7 @@ export function pause() {
   currentProgress = {
     ...currentProgress,
     [currentMessage.track.url]:
-      currentMessage.offset + getSeconds(currentMessage.time),
+      getCurrentOffset(currentMessage),
   }
 
   OBR.room.setMetadata({
