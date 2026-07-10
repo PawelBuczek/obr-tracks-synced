@@ -14,9 +14,27 @@ const progressPath = key("progress")
 const eventEmitter = new EventEmitter()
 let cachedLibrary: Track[] = []
 let cachedProgress: TrackProgressMap = {}
+let roomReady = false
+let roomInitialized = false
 
 function push() {
   eventEmitter.emit(libraryPath, getLibrary())
+}
+
+function runWhenRoomReady(callback: () => void) {
+  if (!OBR.isAvailable) {
+    return
+  }
+
+  if (roomReady) {
+    callback()
+    return
+  }
+
+  OBR.onReady(() => {
+    roomReady = true
+    callback()
+  })
 }
 
 function readMetadata(metadata: Metadata) {
@@ -30,23 +48,20 @@ function readMetadata(metadata: Metadata) {
       : {}
 }
 
-function syncFromRoomMetadata() {
-  OBR.room.getMetadata().then(metadata => {
-    readMetadata(metadata)
-    push()
-  })
-}
-
 function setLibrary(tracks: Track[]) {
   cachedLibrary = tracks
-  OBR.room.setMetadata({ [libraryPath]: tracks })
+  runWhenRoomReady(() => {
+    OBR.room.setMetadata({ [libraryPath]: tracks })
+  })
   push()
 }
 
 function setLibraryAndProgress(library: Track[], progressMap: TrackProgressMap) {
   cachedLibrary = library
   cachedProgress = progressMap
-  OBR.room.setMetadata({ [libraryPath]: library, [progressPath]: progressMap })
+  runWhenRoomReady(() => {
+    OBR.room.setMetadata({ [libraryPath]: library, [progressPath]: progressMap })
+  })
   push()
 }
 
@@ -58,11 +73,26 @@ function getStoredProgress(): TrackProgressMap {
   return cachedProgress
 }
 
-syncFromRoomMetadata()
-OBR.room.onMetadataChange(metadata => {
-  readMetadata(metadata)
-  push()
-})
+function initializeRoomSync() {
+  if (roomInitialized) {
+    return
+  }
+
+  roomInitialized = true
+  runWhenRoomReady(() => {
+    OBR.room.getMetadata().then(metadata => {
+      readMetadata(metadata)
+      push()
+    })
+
+    OBR.room.onMetadataChange(metadata => {
+      readMetadata(metadata)
+      push()
+    })
+  })
+}
+
+initializeRoomSync()
 
 export function addTrackToLibrary(track: Track) {
   logEvent(analytics, "add_track")
