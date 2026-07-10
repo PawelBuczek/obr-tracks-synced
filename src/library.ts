@@ -4,7 +4,7 @@ import { logEvent } from "firebase/analytics"
 import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
-import { stop } from "./mb"
+import { clearProgress, stop } from "./mb"
 import { removeTrackProgress, TrackProgressMap } from "./playback"
 import { Track } from "./track"
 import { checkTrack } from "./utils"
@@ -181,6 +181,7 @@ export function clearLibrary() {
   logEvent(analytics, "clear_tracks")
 
   roomSyncReady.then(() => {
+    clearProgress()
     setLibraryAndProgress([], {})
   })
 }

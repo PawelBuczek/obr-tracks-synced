@@ -109,12 +109,13 @@ function extractMessage(metadata: Metadata): Message | undefined {
   return undefined
 }
 
-function extractProgress(metadata: Metadata): TrackProgressMap {
+function extractProgress(metadata: Metadata): TrackProgressMap | undefined {
   const data = metadata[progressPath]
+
   if (data && typeof data === "object") {
     return data as TrackProgressMap
   }
-  return {}
+  return undefined
 }
 
 function getCurrentOffset(message: Message) {
@@ -127,7 +128,7 @@ export function onMessage(
   const handler = (m: Metadata) => {
     const message = extractMessage(m)
     const progress = extractProgress(m)
-    if (Object.keys(progress).length > 0) {
+    if (progress !== undefined) {
       currentProgress = progress
     }
 
@@ -227,5 +228,13 @@ export function stop() {
   OBR.room.setMetadata({
     [path]: undefined,
     [progressPath]: currentProgress,
+  })
+}
+
+export function clearProgress() {
+  currentProgress = {}
+
+  OBR.room.setMetadata({
+    [progressPath]: {},
   })
 }

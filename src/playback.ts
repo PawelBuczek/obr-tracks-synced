@@ -41,7 +41,7 @@ export function prepareTrackSelection(
 }
 
 export function resetTrackProgress(
-  progressMap: TrackProgressMap,
+  progressMap: TrackProgressMap | undefined,
   track: Track,
 ): TrackProgressMap {
   return {
