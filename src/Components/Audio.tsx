@@ -22,23 +22,34 @@ export function Audio(props: AudioProps) {
     }
   }, [volume])
 
-  useEffect(() => {
-    if (ref.current && currentMessage && ready) {
-      switch (currentMessage.action) {
-        case Action.Play:
-          ref.current.currentTime =
-            (currentMessage.offset + getSeconds(currentMessage.time)) %
-            currentMessage.duration
-          ref.current.paused && ref.current.play()
-          break
-        case Action.Pause:
-          ref.current.currentTime =
-            currentMessage.offset % currentMessage.duration
-          ref.current.paused || ref.current.pause()
-          break
-      }
-    }
-  }, [ready, currentMessage])
+useEffect(() => {
+  if (!ref.current || !ready) {
+    return
+  }
+
+  if (!currentMessage) {
+    ref.current.pause()
+    ref.current.currentTime = 0
+    return
+  }
+
+  switch (currentMessage.action) {
+    case Action.Play:
+      ref.current.currentTime =
+        (currentMessage.offset + getSeconds(currentMessage.time)) %
+        currentMessage.duration
+
+      ref.current.paused && ref.current.play()
+      break
+
+    case Action.Pause:
+      ref.current.currentTime =
+        currentMessage.offset % currentMessage.duration
+
+      ref.current.paused || ref.current.pause()
+      break
+  }
+}, [ready, currentMessage])
 
   return (
     <>
