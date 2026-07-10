@@ -1,4 +1,4 @@
-import { Track } from "./track"
+import { isSameTrack, Track } from "./track"
 
 export enum Action {
   Play,
@@ -64,7 +64,7 @@ export function getTrackInteractionAction(
   activeTrack: Track | undefined,
   activeAction: Action | undefined,
 ): "play" | "pause" | "resume" {
-  if (activeTrack && activeTrack.url === clickedTrack.url) {
+  if (activeTrack && isSameTrack(activeTrack, clickedTrack)) {
     return activeAction === Action.Pause ? "resume" : "pause"
   }
 

@@ -7,7 +7,7 @@ import {
   removeTrackProgress,
   resetTrackProgress,
 } from "./playback"
-import { Track } from "./track"
+import { isSameTrack, Track } from "./track"
 import { getTrackListClickAction } from "./trackListActions"
 
 describe("prepareTrackSelection", () => {
@@ -158,5 +158,6 @@ describe("prepareTrackSelection", () => {
     }
 
     expect(getTrackListClickAction(track, { track: rewrittenTrack, action: Action.Play })).toBe("pause")
+    expect(isSameTrack(track, rewrittenTrack)).toBe(true)
   })
 })
