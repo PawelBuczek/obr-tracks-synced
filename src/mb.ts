@@ -91,9 +91,21 @@ function isMessage(value: unknown): value is Message {
 
 function extractMessage(metadata: Metadata): Message | undefined {
   const data = metadata[path]
+
   if (isMessage(data)) {
-    return data
+    const message = {
+      ...data,
+      time: new Date(data.time),
+    }
+
+    if (isNaN(message.time.getTime())) {
+      console.warn("Invalid message time", data)
+      return undefined
+    }
+
+    return message
   }
+
   return undefined
 }
 
