@@ -50,6 +50,15 @@ export function resetTrackProgress(
   }
 }
 
+export function removeTrackProgress(
+  progressMap: TrackProgressMap,
+  track: Track,
+): TrackProgressMap {
+  const nextProgressMap = { ...progressMap }
+  delete nextProgressMap[track.url]
+  return nextProgressMap
+}
+
 export function getTrackInteractionAction(
   clickedTrack: Track,
   activeTrack: Track | undefined,

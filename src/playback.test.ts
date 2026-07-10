@@ -4,6 +4,7 @@ import {
   getPlaybackOffset,
   getTrackInteractionAction,
   prepareTrackSelection,
+  removeTrackProgress,
   resetTrackProgress,
 } from "./playback"
 import { Track } from "./track"
@@ -106,6 +107,26 @@ describe("prepareTrackSelection", () => {
 
     expect(result.progressMap).toEqual({})
     expect(result.offset).toBe(0)
+  })
+
+  it("removes progress entries for a deleted track without affecting other tracks", () => {
+    const deletedTrack: Track = {
+      title: "Deleted Track",
+      url: "https://example.com/deleted.mp3",
+      tags: [],
+    }
+
+    const result = removeTrackProgress(
+      {
+        [deletedTrack.url]: 42,
+        "https://example.com/other.mp3": 99,
+      },
+      deletedTrack,
+    )
+
+    expect(result).toEqual({
+      "https://example.com/other.mp3": 99,
+    })
   })
 
   it("routes the track-list click to pause, resume, or play based on the active track", () => {

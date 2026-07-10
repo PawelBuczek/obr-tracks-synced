@@ -1,22 +1,68 @@
+import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { EventEmitter } from "events"
 import { logEvent } from "firebase/analytics"
 import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
+import { stop } from "./mb"
+import { removeTrackProgress, TrackProgressMap } from "./playback"
 import { Track } from "./track"
 import { checkTrack } from "./utils"
 
-const path = key("library")
+const libraryPath = key("library")
+const progressPath = key("progress")
 const eventEmitter = new EventEmitter()
+let cachedLibrary: Track[] = []
+let cachedProgress: TrackProgressMap = {}
 
 function push() {
-  eventEmitter.emit(path, getLibrary())
+  eventEmitter.emit(libraryPath, getLibrary())
 }
 
-function set(tracks: Track[]) {
-  localStorage.setItem(path, JSON.stringify(tracks))
+function readMetadata(metadata: Metadata) {
+  const libraryData = metadata[libraryPath]
+  cachedLibrary = Array.isArray(libraryData) ? (libraryData as Track[]) : []
+
+  const progressData = metadata[progressPath]
+  cachedProgress =
+    progressData && typeof progressData === "object"
+      ? (progressData as TrackProgressMap)
+      : {}
+}
+
+function syncFromRoomMetadata() {
+  OBR.room.getMetadata().then(metadata => {
+    readMetadata(metadata)
+    push()
+  })
+}
+
+function setLibrary(tracks: Track[]) {
+  cachedLibrary = tracks
+  OBR.room.setMetadata({ [libraryPath]: tracks })
   push()
 }
+
+function setLibraryAndProgress(library: Track[], progressMap: TrackProgressMap) {
+  cachedLibrary = library
+  cachedProgress = progressMap
+  OBR.room.setMetadata({ [libraryPath]: library, [progressPath]: progressMap })
+  push()
+}
+
+function getStoredLibrary(): Track[] {
+  return cachedLibrary
+}
+
+function getStoredProgress(): TrackProgressMap {
+  return cachedProgress
+}
+
+syncFromRoomMetadata()
+OBR.room.onMetadataChange(metadata => {
+  readMetadata(metadata)
+  push()
+})
 
 export function addTrackToLibrary(track: Track) {
   logEvent(analytics, "add_track")
@@ -25,7 +71,12 @@ export function addTrackToLibrary(track: Track) {
 
 export function deleteTrackFromLibrary(track: Track) {
   logEvent(analytics, "delete_track")
-  set(getLibrary().filter(t => t.url !== track.url))
+  const currentLibrary = getLibrary()
+  const nextLibrary = currentLibrary.filter(t => t.url !== track.url)
+  const nextProgress = removeTrackProgress(getStoredProgress(), track)
+
+  stop()
+  setLibraryAndProgress(nextLibrary, nextProgress)
 }
 
 export function mergeLibrary(tracks: Track[]) {
@@ -50,30 +101,29 @@ export function mergeLibrary(tracks: Track[]) {
       newTracks.push(t)
     }
   })
-  set([...newTracks, ...currentLibrary])
+  setLibrary([...newTracks, ...currentLibrary])
 }
 
 export function getLibrary(): Track[] {
-  return JSON.parse(localStorage.getItem(path) ?? "[]").map((t: Track) => t)
+  return getStoredLibrary()
 }
 
 export function clearLibrary() {
   logEvent(analytics, "clear_tracks")
-  localStorage.removeItem(path)
-  push()
+  setLibraryAndProgress([], {})
 }
 
 export function onLibraryChange(
   callback: (tracks: Track[]) => void,
 ): () => void {
   callback(getLibrary())
-  eventEmitter.addListener(path, callback)
-  return () => eventEmitter.removeListener(path, callback)
+  eventEmitter.addListener(libraryPath, callback)
+  return () => eventEmitter.removeListener(libraryPath, callback)
 }
 
 // clean the library
 export function cleanLibrary() {
-  set(
+  setLibrary(
     getLibrary().map(t => {
       const { fixed, validation } = checkTrack(t)
       if (validation) {
