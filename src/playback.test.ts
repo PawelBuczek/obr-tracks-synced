@@ -144,4 +144,19 @@ describe("prepareTrackSelection", () => {
       getTrackListClickAction(track, { track, action: Action.Pause }),
     ).toBe("resume")
   })
+
+  it("treats the same track as active even when the playback message uses a rewritten download URL", () => {
+    const track: Track = {
+      title: "Dropbox Track",
+      url: "https://www.dropbox.com/s/example/file.mp3?dl=0",
+      tags: [],
+    }
+
+    const rewrittenTrack: Track = {
+      ...track,
+      url: "https://dl.dropboxusercontent.com/s/example/file.mp3?dl=1",
+    }
+
+    expect(getTrackListClickAction(track, { track: rewrittenTrack, action: Action.Play })).toBe("pause")
+  })
 })
