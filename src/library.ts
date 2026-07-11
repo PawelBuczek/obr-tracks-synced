@@ -151,7 +151,7 @@ const roomSyncReady = initializeRoomSync()
 export function addTrackToLibrary(track: Track) {
   logEvent(analytics, "add_track")
 
-  roomSyncReady.then(() => {
+  return roomSyncReady.then(() => {
     mergeLibrary([track])
   })
 }
@@ -159,7 +159,7 @@ export function addTrackToLibrary(track: Track) {
 export function deleteTrackFromLibrary(track: Track) {
   logEvent(analytics, "delete_track")
 
-  roomSyncReady.then(async () => {
+  return roomSyncReady.then(async () => {
     const currentLibrary = getLibrary()
 
     const nextLibrary = currentLibrary.filter(
@@ -235,11 +235,12 @@ export function clearLibrary() {
 
   logEvent(analytics, "clear_tracks")
 
-  roomSyncReady.then(async () => {
+  return roomSyncReady.then(async () => {
     stopPlayback()
 
-    await setLibraryAndProgress([], 
-      {},   
+    await setLibraryAndProgress(
+      [],
+      {},
       {
         [controlPath]: undefined,
       },
@@ -269,7 +270,7 @@ export function onLibraryChange(
 export function cleanLibrary() {
   console.trace("[library] cleanLibrary")
 
-  roomSyncReady.then(() => {
+  return roomSyncReady.then(() => {
     setLibrary(
       getLibrary().map(track => {
         const { fixed, validation } = checkTrack(track)
