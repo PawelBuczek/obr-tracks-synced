@@ -100,4 +100,3 @@ it("clears current message after stop", async () => {
     }),
   )
 })
-
