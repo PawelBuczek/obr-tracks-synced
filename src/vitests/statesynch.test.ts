@@ -67,3 +67,37 @@ describe("message state synchronization", () => {
     expect(mocks.updateMetadata).toHaveBeenCalled()
   })
 })
+
+it("clears current message after stop", async () => {
+  const callback = vi.fn()
+
+  mocks.getMetadata.mockResolvedValue({
+    [controlPath]: {
+      id: "123",
+      time: new Date().toISOString(),
+      action: Action.Play,
+      offset: 0,
+      duration: 100,
+      track: {
+        title: "Test",
+        url: "test.mp3",
+        tags: [],
+      },
+    },
+  })
+
+  onMessage(callback)
+
+  await Promise.resolve()
+
+  expect(callback).toHaveBeenCalled()
+
+  stop()
+
+  expect(mocks.updateMetadata).toHaveBeenCalledWith(
+    expect.objectContaining({
+      [controlPath]: undefined,
+    }),
+  )
+})
+

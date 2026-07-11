@@ -197,7 +197,7 @@ export function play(track: Track) {
 
 export function pause() {
   console.log("mb currentMessage", currentMessage);
-  
+
   logEvent(analytics, "pause")
   if (!currentMessage) {
     throw new ObrError("Unable to pause before receiving first message")
@@ -239,6 +239,4 @@ export function stopPlayback() {
   if (currentMessage) {
     currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
   }
-
-  currentMessage = undefined
 }
