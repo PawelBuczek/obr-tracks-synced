@@ -1,6 +1,6 @@
 {
   "name": "TracksSynced",
-  "description": "Play long looping background music and ambiance from your own library with builtin search and synchronized playback",
+  "description": "Play long looping background music from your own library with builtin search and synchronized playback",
   "version": "2.1.0",
   "manifest_version": 1,
   "icon": "/obr-tracks-synced/tracks_256.png",
