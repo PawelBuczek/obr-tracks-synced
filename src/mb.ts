@@ -16,7 +16,7 @@ import {
 } from "./playback"
 import { checkTrack, convertToDirectDownloadable } from "./utils"
 
-const path = key("control")
+export const controlPath = key("control")
 const progressPath = key("progress")
 
 export { Action }
@@ -91,7 +91,7 @@ function isMessage(value: unknown): value is Message {
 }
 
 function extractMessage(metadata: Metadata): Message | undefined {
-  const data = metadata[path]
+  const data = metadata[controlPath]
 
   if (isMessage(data)) {
     const message = {
@@ -187,7 +187,7 @@ export function play(track: Track) {
   }
   audio.onloadedmetadata = () => {
     updateMetadata({
-      [path]: newPlayMessage(fixed, audio.duration, offset),
+      [controlPath]: newPlayMessage(fixed, audio.duration, offset),
       [progressPath]: currentProgress,
     })
   }
@@ -208,7 +208,7 @@ export function pause() {
   }
 
   updateMetadata({
-    [path]: pauseCurrentMessage(),
+    [controlPath]: pauseCurrentMessage(),
     [progressPath]: currentProgress,
   })
 }
@@ -216,7 +216,7 @@ export function pause() {
 export function resume() {
   logEvent(analytics, "resume")
   updateMetadata({
-    [path]: resumeCurrentMessage(),
+    [controlPath]: resumeCurrentMessage(),
     [progressPath]: currentProgress,
   })
 }
@@ -225,7 +225,7 @@ export function stop() {
    stopPlayback()
 
   updateMetadata({
-    [path]: undefined,
+    [controlPath]: undefined,
     [progressPath]: currentProgress,
   })
 }

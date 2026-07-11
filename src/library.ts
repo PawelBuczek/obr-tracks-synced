@@ -4,7 +4,7 @@ import { logEvent } from "firebase/analytics"
 import { ObrError } from "./errors"
 import { analytics } from "./firebase"
 import { key } from "./key"
-import { stopPlayback } from "./mb"
+import { controlPath, stopPlayback } from "./mb"
 import { updateMetadata } from "./metadataHelper"
 import { removeTrackProgress, TrackProgressMap } from "./playback"
 import { Track } from "./track"
@@ -78,6 +78,7 @@ async function setLibrary(tracks: Track[]) {
 async function setLibraryAndProgress(
   library: Track[],
   progressMap: TrackProgressMap,
+  playbackUpdate?: Metadata,
 ) {
   console.trace("[library] setLibraryAndProgress", {
     library,
@@ -94,6 +95,7 @@ async function setLibraryAndProgress(
   await updateMetadata({
     [libraryPath]: cachedLibrary,
     [progressPath]: cachedProgress,
+    ...playbackUpdate,
   })
 
   push()
@@ -174,6 +176,9 @@ export function deleteTrackFromLibrary(track: Track) {
     await setLibraryAndProgress(
       nextLibrary,
       nextProgress,
+      {
+        [controlPath]: undefined,
+      }
     )
   })
 }
@@ -233,7 +238,12 @@ export function clearLibrary() {
   roomSyncReady.then(async () => {
     stopPlayback()
 
-    await setLibraryAndProgress([], {})
+    await setLibraryAndProgress([], 
+      {},   
+      {
+        [controlPath]: undefined,
+      },
+    )
   })
 }
 
