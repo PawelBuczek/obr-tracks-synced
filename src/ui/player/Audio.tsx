@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 import { Action } from "../../room/mb"
-import { getSeconds } from "../../shared/utils"
+import { getPlaybackTime, getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
 import { TrackProgress } from "./TrackProgress"
 
@@ -35,15 +35,21 @@ export function Audio(props: AudioProps) {
 
     switch (currentMessage.action) {
       case Action.Play:
-        ref.current.currentTime =
-          (currentMessage.offset + getSeconds(currentMessage.time)) %
-          currentMessage.duration
+        ref.current.currentTime = getPlaybackTime(
+          currentMessage.offset,
+          getSeconds(currentMessage.time),
+          currentMessage.duration,
+        )
 
         ref.current.paused && ref.current.play()
         break
 
       case Action.Pause:
-        ref.current.currentTime = currentMessage.offset % currentMessage.duration
+        ref.current.currentTime = getPlaybackTime(
+          currentMessage.offset,
+          0,
+          currentMessage.duration,
+        )
 
         ref.current.paused || ref.current.pause()
         break

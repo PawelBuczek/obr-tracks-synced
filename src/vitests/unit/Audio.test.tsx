@@ -40,4 +40,30 @@ describe("Audio looping", () => {
       expect(audio.currentTime).toBeLessThan(100)
     })
   })
+
+  it("does not assign NaN to currentTime when an optimistic play message has zero duration", async () => {
+    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
+    mockUseMessage.mockReturnValue({
+      id: "optimistic-play",
+      time: new Date(),
+      action: Action.Play,
+      offset: 0,
+      duration: 0,
+      track: {
+        title: "Fresh Track",
+        url: "https://example.com/fresh.mp3",
+        tags: [],
+      },
+    })
+
+    render(<Audio ready={true} volume={0.5} mute={false} />)
+
+    const audio = document.getElementById("tracks-audio-player") as HTMLAudioElement
+
+    await waitFor(() => {
+      expect(audio).toBeDefined()
+      expect(Number.isFinite(audio.currentTime)).toBe(true)
+      expect(audio.currentTime).toBeGreaterThanOrEqual(0)
+    })
+  })
 })

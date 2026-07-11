@@ -7,6 +7,25 @@ export function getSeconds(time: Date) {
   return (now().getTime() - new Date(time).getTime()) / 1000
 }
 
+export function getPlaybackTime(
+  offsetSeconds: number,
+  elapsedSeconds: number,
+  durationSeconds: number,
+) {
+  const rawTime = offsetSeconds + elapsedSeconds
+
+  if (!Number.isFinite(rawTime)) {
+    return 0
+  }
+
+  if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+    const wrappedTime = rawTime % durationSeconds
+    return wrappedTime >= 0 ? wrappedTime : wrappedTime + durationSeconds
+  }
+
+  return Math.max(0, rawTime)
+}
+
 // convert urls into direct downloadable urls, currently only supports dropbox
 export function convertToDirectDownloadable(url: string): string {
   let urlObject: URL

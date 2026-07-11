@@ -7,7 +7,7 @@ import {
 } from "@mui/material"
 import { SyntheticEvent, useEffect, useState } from "react"
 import { Action, seekToOffset } from "../../room/mb"
-import { getSeconds } from "../../shared/utils"
+import { getPlaybackTime, getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
 
 function secondsToDisplay(seconds: number): string {
@@ -41,15 +41,20 @@ export function TrackProgress() {
     if (currentMessage) {
       // on pause, just set the progression and wait for unpause
       if (currentMessage.action === Action.Pause) {
-        setProgress(currentMessage.offset % currentMessage.duration)
+        setProgress(
+          getPlaybackTime(currentMessage.offset, 0, currentMessage.duration),
+        )
         return
       }
 
       // on play, update progress every second
       const id = setInterval(() => {
         setProgress(
-          (currentMessage.offset + getSeconds(currentMessage.time)) %
+          getPlaybackTime(
+            currentMessage.offset,
+            getSeconds(currentMessage.time),
             currentMessage.duration,
+          ),
         )
       }, 1000)
       return () => clearInterval(id)
@@ -78,9 +83,12 @@ export function TrackProgress() {
 
     const syncedProgress =
       currentMessage.action === Action.Pause
-        ? currentMessage.offset % currentMessage.duration
-        : (currentMessage.offset + getSeconds(currentMessage.time)) %
-          currentMessage.duration
+        ? getPlaybackTime(currentMessage.offset, 0, currentMessage.duration)
+        : getPlaybackTime(
+            currentMessage.offset,
+            getSeconds(currentMessage.time),
+            currentMessage.duration,
+          )
 
     if (Math.abs(syncedProgress - optimisticSeek.seconds) <= 1) {
       setOptimisticSeek(undefined)
