@@ -59,6 +59,15 @@ function readMetadata(metadata: Metadata) {
       : {}
 }
 
+async function refreshMetadataFromRoom() {
+  if (!OBR.isAvailable) {
+    return
+  }
+
+  const metadata = await OBR.room.getMetadata()
+  readMetadata(metadata)
+}
+
 async function setLibrary(tracks: Track[]) {
   console.trace("[library] setLibrary", tracks)
 
@@ -146,13 +155,26 @@ function initializeRoomSync(): Promise<void> {
   return roomSyncPromise
 }
 
+async function isTheTrackActivelyPlaying(trackUrl: String): Promise<boolean> {
+  if (!OBR.isAvailable) {
+    return false
+  }
+
+  const metadata = await OBR.room.getMetadata()
+  
+  const currentMessage = metadata[controlPath] as { track?: Track } | undefined
+
+  return currentMessage?.track?.url === trackUrl
+}
+
 const roomSyncReady = initializeRoomSync()
 
 export function addTrackToLibrary(track: Track) {
   logEvent(analytics, "add_track")
 
-  return roomSyncReady.then(() => {
-    mergeLibrary([track])
+  return roomSyncReady.then(async () => {
+    await refreshMetadataFromRoom()
+    await mergeLibrary([track])
   })
 }
 
@@ -160,31 +182,39 @@ export function deleteTrackFromLibrary(track: Track) {
   logEvent(analytics, "delete_track")
 
   return roomSyncReady.then(async () => {
+    await refreshMetadataFromRoom()
+
     const currentLibrary = getLibrary()
 
     const nextLibrary = currentLibrary.filter(
       t => t.url !== track.url,
     )
 
-    const nextProgress = removeTrackProgress(
+    if(await isTheTrackActivelyPlaying (track.url)) {
+      const nextProgress = removeTrackProgress(
       getStoredProgress(),
       track,
-    )
+      )
 
-    stopPlayback()
+      stopPlayback()
 
-    await setLibraryAndProgress(
-      nextLibrary,
-      nextProgress,
-      {
-        [controlPath]: undefined,
-      }
-    )
+      await setLibraryAndProgress(
+       nextLibrary,
+       nextProgress,
+       {
+         [controlPath]: undefined,
+       }
+      )
+    } else {
+      await setLibrary(nextLibrary)
+    }
   })
 }
 
-export function mergeLibrary(tracks: Track[]) {
+export async function mergeLibrary(tracks: Track[]) {
   console.trace("[library] mergeLibrary", tracks)
+
+  await refreshMetadataFromRoom()
 
   const currentLibrary = getLibrary()
 
@@ -220,7 +250,7 @@ export function mergeLibrary(tracks: Track[]) {
     }
   })
 
-  setLibrary([
+  await setLibrary([
     ...newTracks,
     ...updatedLibrary,
   ])
@@ -236,6 +266,7 @@ export function clearLibrary() {
   logEvent(analytics, "clear_tracks")
 
   return roomSyncReady.then(async () => {
+    await refreshMetadataFromRoom()
     stopPlayback()
 
     await setLibraryAndProgress(
@@ -270,8 +301,10 @@ export function onLibraryChange(
 export function cleanLibrary() {
   console.trace("[library] cleanLibrary")
 
-  return roomSyncReady.then(() => {
-    setLibrary(
+  return roomSyncReady.then(async () => {
+    await refreshMetadataFromRoom()
+
+    await setLibrary(
       getLibrary().map(track => {
         const { fixed, validation } = checkTrack(track)
 
