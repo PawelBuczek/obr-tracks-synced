@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
-  getMetadata: vi.fn(() => Promise.resolve({})),
+  metadata: {} as Record<string, unknown>,
+  getMetadata: vi.fn(() => Promise.resolve(mocks.metadata)),
   setMetadata: vi.fn(),
   onMetadataChange: vi.fn(
     (_handler?: (metadata: Record<string, unknown>) => void) => vi.fn(),
   ),
   updateMetadata: vi.fn(),
+  updateMetadataWithCurrent: vi.fn(),
 }))
 
 vi.mock("@owlbear-rodeo/sdk", () => ({
@@ -31,19 +33,42 @@ vi.mock("../../infra/firebase", () => ({
 
 vi.mock("../../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
+  updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
 }))
 
 import { Action, controlPath, onMessage, pause, stop } from "../../room/mb"
+import { libraryPath } from "../../room/metadataSchema"
 
 describe("message state synchronization", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.metadata = {}
+
+    mocks.updateMetadata.mockImplementation((update: Record<string, unknown>) => {
+      mocks.metadata = {
+        ...mocks.metadata,
+        ...update,
+      }
+    })
+
+    mocks.updateMetadataWithCurrent.mockImplementation(async (transform) => {
+      const update = await transform(mocks.metadata)
+
+      if (!update) {
+        return
+      }
+
+      mocks.metadata = {
+        ...mocks.metadata,
+        ...update,
+      }
+    })
   })
 
   it("allows pausing after receiving a play message", async () => {
     const callback = vi.fn()
 
-    mocks.getMetadata.mockResolvedValue({
+    mocks.metadata = {
       [controlPath]: {
         id: "123",
         time: new Date().toISOString(),
@@ -56,7 +81,14 @@ describe("message state synchronization", () => {
           tags: [],
         },
       },
-    })
+      [libraryPath]: [
+        {
+          title: "Test",
+          url: "test.mp3",
+          tags: [],
+        },
+      ],
+    }
 
     onMessage(callback)
 
@@ -66,13 +98,13 @@ describe("message state synchronization", () => {
 
     await pause()
 
-    expect(mocks.updateMetadata).toHaveBeenCalled()
+    expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
   })
 
   it("emits update when control message id is unchanged but track metadata changes", async () => {
     const callback = vi.fn()
 
-    let metadata = {
+    mocks.metadata = {
       [controlPath]: {
         id: "same-id",
         time: new Date().toISOString(),
@@ -85,22 +117,35 @@ describe("message state synchronization", () => {
           tags: ["old"],
         },
       },
+      [libraryPath]: [
+        {
+          title: "Old",
+          url: "https://example.com/test.mp3",
+          tags: ["old"],
+        },
+      ],
     }
 
-    mocks.getMetadata.mockImplementation(() => Promise.resolve(metadata))
     mocks.onMetadataChange.mockImplementation(
       (handler?: (metadata: Record<string, unknown>) => void) => {
-      metadata = {
+      mocks.metadata = {
         [controlPath]: {
-          ...metadata[controlPath],
+          ...(mocks.metadata[controlPath] as Record<string, unknown>),
           track: {
             title: "New",
             url: "https://example.com/test.mp3",
             tags: ["new"],
           },
         },
+        [libraryPath]: [
+          {
+            title: "New",
+            url: "https://example.com/test.mp3",
+            tags: ["new"],
+          },
+        ],
       }
-      handler?.(metadata)
+      handler?.(mocks.metadata)
       return vi.fn()
       },
     )
@@ -124,7 +169,7 @@ describe("message state synchronization", () => {
 it("clears current message after stop", async () => {
   const callback = vi.fn()
 
-  mocks.getMetadata.mockResolvedValue({
+  mocks.metadata = {
     [controlPath]: {
       id: "456",
       time: new Date().toISOString(),
@@ -137,7 +182,14 @@ it("clears current message after stop", async () => {
         tags: [],
       },
     },
-  })
+    [libraryPath]: [
+      {
+        title: "Test",
+        url: "test.mp3",
+        tags: [],
+      },
+    ],
+  }
 
   onMessage(callback)
 

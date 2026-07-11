@@ -86,11 +86,88 @@ describe("room state operations", () => {
       "https://example.com/track.mp3": 5,
     }
 
+    mocks.metadata = {
+      [libraryPath]: [control.track],
+      [progressPath]: {},
+    }
+
     await writeControlAndProgress(control, progress)
 
-    expect(mocks.updateMetadata).toHaveBeenCalledWith({
-      [controlPath]: control,
-      [progressPath]: progress,
+    expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
+    expect(mocks.metadata[controlPath]).toEqual(control)
+    expect(mocks.metadata[progressPath]).toEqual(progress)
+  })
+
+  it("no-ops playback write when track is no longer in room library", async () => {
+    const control = {
+      id: "msg-1",
+      time: new Date("2026-01-01T00:00:00.000Z"),
+      action: Action.Play,
+      offset: 5,
+      duration: 60,
+      track: {
+        title: "Track",
+        url: "https://example.com/track.mp3",
+        tags: [],
+      },
+    }
+
+    const progress = {
+      "https://example.com/track.mp3": 5,
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [],
+      [progressPath]: {},
+    }
+
+    await writeControlAndProgress(control, progress)
+
+    expect(mocks.metadata[controlPath]).toBeUndefined()
+    expect(mocks.metadata[progressPath]).toEqual({})
+  })
+
+  it("no-ops playback write when current control id changed", async () => {
+    const control = {
+      id: "msg-next",
+      time: new Date("2026-01-01T00:00:00.000Z"),
+      action: Action.Pause,
+      offset: 7,
+      duration: 60,
+      track: {
+        title: "Track",
+        url: "https://example.com/track.mp3",
+        tags: [],
+      },
+    }
+
+    const progress = {
+      "https://example.com/track.mp3": 7,
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [control.track],
+      [controlPath]: {
+        ...control,
+        id: "msg-current",
+        action: Action.Play,
+      },
+      [progressPath]: {
+        "https://example.com/track.mp3": 3,
+      },
+    }
+
+    await writeControlAndProgress(control, progress, {
+      expectedControlId: "msg-old",
+    })
+
+    expect(mocks.metadata[controlPath]).toEqual(
+      expect.objectContaining({
+        id: "msg-current",
+      }),
+    )
+    expect(mocks.metadata[progressPath]).toEqual({
+      "https://example.com/track.mp3": 3,
     })
   })
 
@@ -174,6 +251,42 @@ describe("room state operations", () => {
         title: "New",
         url: baseTrack.url,
         tags: ["two"],
+      },
+    ])
+    expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
+  })
+
+  it("treats dropbox url variants as one track during merge updates", async () => {
+    const shareUrl = "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0"
+    const directUrl = "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1"
+
+    mocks.metadata = {
+      [libraryPath]: [
+        {
+          title: "Old Title",
+          url: shareUrl,
+          tags: ["old"],
+        },
+      ],
+      [progressPath]: {
+        [directUrl]: 9,
+      },
+    }
+
+    const outcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "New Title",
+        url: directUrl,
+        tags: ["new"],
+      },
+    ])
+
+    expect(outcome.changed).toBe(true)
+    expect(outcome.library).toEqual([
+      {
+        title: "New Title",
+        url: shareUrl,
+        tags: ["new"],
       },
     ])
     expect(mocks.metadata[libraryPath]).toEqual(outcome.library)

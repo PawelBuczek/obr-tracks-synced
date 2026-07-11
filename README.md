@@ -40,6 +40,25 @@ The current conflict strategy is hybrid:
 - run library merge/delete/clear decisions against one queued current metadata snapshot
 - treat stale operations as safe no-ops when the target is already gone (for example delete-after-delete)
 
+Conflict safety invariants are verified in `src/vitests/integration/conflictInvariants.test.ts`.
+
+### Conflict Rules Matrix (M7)
+
+All room writes are serialized per client and resolved against one queued current metadata snapshot.
+
+| Operation Pair | Resolution Rule | Expected End State |
+|---|---|---|
+| `merge` + `merge` (same logical track) | Last writer wins for `title/tags`; track identity is normalized (`isSameTrack`) | Single track entry, latest `title/tags` |
+| `play` + `play` (different tracks) | Last applied control write wins | Final control points at later-selected track |
+| `merge` + `merge` (different tracks, same `title`) | Reject second write with duplicate-title validation | First valid write remains |
+| `delete` + `delete` (same logical track) | First delete removes; stale second delete becomes no-op | Track absent |
+| `clear` + `clear` | First clear removes all; stale second clear becomes no-op | Empty library/progress/control |
+| `delete`/`clear` + playback update (`play/pause/resume/seek`) | Metadata order decides final state; later write is authoritative | Deterministic last-applied state |
+| stale `pause`/`resume`/`seek` after control replacement | If expected control id no longer matches current control id, write becomes no-op | Newer playback control remains authoritative |
+| stale `play` for deleted track | If target track is absent from room library, write becomes no-op | Deleted track cannot be resurrected by late play |
+| `delete` of currently playing track | Always clear control and track progress when logical track matches | Playback stopped for deleted track |
+| `merge` updating currently playing track details | Refresh control track `title/tags` without changing active playback id/timing | UI reflects latest metadata |
+
 ## Deployment
 
 This project is configured to deploy the static build to GitHub Pages via GitHub Actions.

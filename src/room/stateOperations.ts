@@ -17,10 +17,33 @@ import {
 export function writeControlAndProgress(
   control: RoomControlMessage,
   progress: TrackProgressMap,
+  options?: {
+    expectedControlId?: string
+  },
 ) {
-  return updateMetadata({
-    [controlPath]: control,
-    [progressPath]: progress,
+  return updateMetadataWithCurrent(current => {
+    const currentLibrary = extractLibrary(current)
+
+    const trackStillInLibrary = currentLibrary.some(track =>
+      isSameTrack(track, control.track),
+    )
+
+    if (!trackStillInLibrary) {
+      return undefined
+    }
+
+    if (options?.expectedControlId !== undefined) {
+      const currentMessage = extractControlMessage(current)
+
+      if (currentMessage?.id !== options.expectedControlId) {
+        return undefined
+      }
+    }
+
+    return {
+      [controlPath]: control,
+      [progressPath]: progress,
+    }
   })
 }
 
@@ -121,14 +144,14 @@ function buildMergedLibrary(currentLibrary: Track[], tracks: Track[]): Track[] {
       throw new ObrError("Track validation failed", fixed, validation)
     }
 
-    const existingIndex = updatedLibrary.findIndex(
-      currentTrack => currentTrack.url === fixed.url,
+    const existingIndex = updatedLibrary.findIndex(currentTrack =>
+      isSameTrack(currentTrack, fixed),
     )
 
     const hasDuplicateTitle = allTracks.some(
       currentTrack =>
         currentTrack.title === fixed.title &&
-        currentTrack.url !== fixed.url,
+        !isSameTrack(currentTrack, fixed),
     )
 
     if (hasDuplicateTitle) {

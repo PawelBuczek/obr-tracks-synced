@@ -4,6 +4,7 @@ import {
   clearRoomLibrary,
   deleteTrackFromRoomLibrary,
   mergeTracksIntoRoomLibrary,
+  writeControlAndProgress,
 } from "../../room/stateOperations"
 import { controlPath, libraryPath, progressPath } from "../../room/metadataSchema"
 
@@ -374,6 +375,37 @@ describe("dual-GM conflict ordering", () => {
     })
   })
 
+  it("dropbox url-variant interleaved adds converge to one logical track", async () => {
+    const shareUrl = "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0"
+    const directUrl = "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1"
+
+    const firstOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "First Title",
+        url: shareUrl,
+        tags: ["a"],
+      },
+    ])
+
+    const secondOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Second Title",
+        url: directUrl,
+        tags: ["b"],
+      },
+    ])
+
+    expect(firstOutcome.changed).toBe(true)
+    expect(secondOutcome.changed).toBe(true)
+    expect(mocks.metadata[libraryPath]).toEqual([
+      {
+        title: "Second Title",
+        url: shareUrl,
+        tags: ["b"],
+      },
+    ])
+  })
+
   it("clear-then-add allows reusing a previously occupied title", async () => {
     mocks.metadata = {
       [libraryPath]: [
@@ -407,5 +439,222 @@ describe("dual-GM conflict ordering", () => {
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
+  })
+
+  it("clear-then-stale-pause keeps playback cleared", async () => {
+    const track = {
+      title: "Track",
+      url: "https://example.com/track.mp3",
+      tags: [],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [track],
+      [progressPath]: {
+        [track.url]: 20,
+      },
+      [controlPath]: {
+        id: "playing-id",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 20,
+        duration: 300,
+        track,
+      },
+    }
+
+    await clearRoomLibrary()
+
+    await writeControlAndProgress(
+      {
+        id: "pause-id",
+        time: new Date("2026-01-01T00:00:01.000Z"),
+        action: Action.Pause,
+        offset: 21,
+        duration: 300,
+        track,
+      },
+      {
+        [track.url]: 21,
+      },
+      {
+        expectedControlId: "playing-id",
+      },
+    )
+
+    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(mocks.metadata[controlPath]).toBeUndefined()
+    expect(mocks.metadata[progressPath]).toEqual({})
+  })
+
+  it("delete-playing-then-stale-seek keeps playback cleared", async () => {
+    const track = {
+      title: "Track",
+      url: "https://example.com/track.mp3",
+      tags: [],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [track],
+      [progressPath]: {
+        [track.url]: 10,
+      },
+      [controlPath]: {
+        id: "playing-id",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 10,
+        duration: 300,
+        track,
+      },
+    }
+
+    await deleteTrackFromRoomLibrary(track)
+
+    await writeControlAndProgress(
+      {
+        id: "seek-id",
+        time: new Date("2026-01-01T00:00:02.000Z"),
+        action: Action.Play,
+        offset: 42,
+        duration: 300,
+        track,
+      },
+      {
+        [track.url]: 42,
+      },
+      {
+        expectedControlId: "playing-id",
+      },
+    )
+
+    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(mocks.metadata[controlPath]).toBeUndefined()
+    expect(mocks.metadata[progressPath]).toEqual({})
+  })
+
+  it("play-switch interleaving is deterministic with last writer winning control", async () => {
+    const trackA = {
+      title: "Track A",
+      url: "https://example.com/a.mp3",
+      tags: ["a"],
+    }
+
+    const trackB = {
+      title: "Track B",
+      url: "https://example.com/b.mp3",
+      tags: ["b"],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [trackA, trackB],
+      [progressPath]: {
+        [trackA.url]: 30,
+        [trackB.url]: 0,
+      },
+      [controlPath]: {
+        id: "initial",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 30,
+        duration: 400,
+        track: trackA,
+      },
+    }
+
+    await writeControlAndProgress(
+      {
+        id: "gm1-play-a",
+        time: new Date("2026-01-01T00:00:01.000Z"),
+        action: Action.Play,
+        offset: 31,
+        duration: 400,
+        track: trackA,
+      },
+      {
+        [trackA.url]: 31,
+        [trackB.url]: 0,
+      },
+    )
+
+    await writeControlAndProgress(
+      {
+        id: "gm2-play-b",
+        time: new Date("2026-01-01T00:00:02.000Z"),
+        action: Action.Play,
+        offset: 0,
+        duration: 200,
+        track: trackB,
+      },
+      {
+        [trackA.url]: 31,
+        [trackB.url]: 0,
+      },
+    )
+
+    expect(mocks.metadata[controlPath]).toEqual(
+      expect.objectContaining({
+        id: "gm2-play-b",
+        action: Action.Play,
+        track: trackB,
+      }),
+    )
+    expect(mocks.metadata[progressPath]).toEqual({
+      [trackA.url]: 31,
+      [trackB.url]: 0,
+    })
+  })
+
+  it("late play write for a deleted track no-ops", async () => {
+    const trackA = {
+      title: "Track A",
+      url: "https://example.com/a.mp3",
+      tags: ["a"],
+    }
+
+    const trackB = {
+      title: "Track B",
+      url: "https://example.com/b.mp3",
+      tags: ["b"],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [trackA, trackB],
+      [progressPath]: {
+        [trackA.url]: 12,
+        [trackB.url]: 0,
+      },
+      [controlPath]: {
+        id: "playing-a",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 12,
+        duration: 400,
+        track: trackA,
+      },
+    }
+
+    await deleteTrackFromRoomLibrary(trackA)
+
+    await writeControlAndProgress(
+      {
+        id: "late-play-a",
+        time: new Date("2026-01-01T00:00:03.000Z"),
+        action: Action.Play,
+        offset: 0,
+        duration: 400,
+        track: trackA,
+      },
+      {
+        [trackA.url]: 0,
+        [trackB.url]: 0,
+      },
+    )
+
+    expect(mocks.metadata[libraryPath]).toEqual([trackB])
+    expect(mocks.metadata[controlPath]).toBeUndefined()
+    expect(mocks.metadata[progressPath]).toEqual({
+      [trackB.url]: 0,
+    })
   })
 })

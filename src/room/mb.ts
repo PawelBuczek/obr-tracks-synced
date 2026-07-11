@@ -186,12 +186,22 @@ export function pause() {
     [currentMessage.track.url]: getCurrentOffset(currentMessage),
   }
 
-  writeControlAndProgress(pauseCurrentMessage(), currentProgress)
+  const expectedControlId = currentMessage.id
+  writeControlAndProgress(pauseCurrentMessage(), currentProgress, {
+    expectedControlId,
+  })
 }
 
 export function resume() {
   logEvent(analytics, "resume")
-  writeControlAndProgress(resumeCurrentMessage(), currentProgress)
+  if (!currentMessage) {
+    throw new ObrError("Unable to resume before receiving first message")
+  }
+
+  const expectedControlId = currentMessage.id
+  writeControlAndProgress(resumeCurrentMessage(), currentProgress, {
+    expectedControlId,
+  })
 }
 
 export function stop() {
@@ -233,7 +243,10 @@ export function seekToOffset(offsetSeconds: number) {
       [currentMessage.track.url]: clampedOffset,
     }
 
-    writeControlAndProgress(updatedMessage, currentProgress)
+    const expectedControlId = currentMessage.id
+    writeControlAndProgress(updatedMessage, currentProgress, {
+      expectedControlId,
+    })
   } else {
     // If playing, resume from the new offset
     const updatedMessage = newPlayMessage(
@@ -248,6 +261,9 @@ export function seekToOffset(offsetSeconds: number) {
       [currentMessage.track.url]: clampedOffset,
     }
 
-    writeControlAndProgress(updatedMessage, currentProgress)
+    const expectedControlId = currentMessage.id
+    writeControlAndProgress(updatedMessage, currentProgress, {
+      expectedControlId,
+    })
   }
 }
