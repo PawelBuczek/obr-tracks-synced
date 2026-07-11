@@ -24,6 +24,38 @@ export { Action }
 
 export type Message = RoomControlMessage
 
+function sameTags(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((tag, index) => tag === right[index])
+}
+
+function isSameMessage(
+  left: Message | undefined,
+  right: Message | undefined,
+): boolean {
+  if (left === right) {
+    return true
+  }
+
+  if (!left || !right) {
+    return false
+  }
+
+  return (
+    left.id === right.id &&
+    left.action === right.action &&
+    left.offset === right.offset &&
+    left.duration === right.duration &&
+    left.time.getTime() === right.time.getTime() &&
+    left.track.title === right.track.title &&
+    left.track.url === right.track.url &&
+    sameTags(left.track.tags, right.track.tags)
+  )
+}
+
 function newPlayMessage(
   track: Track,
   duration: number,
@@ -79,7 +111,7 @@ export function onMessage(
     const message = extractControlMessage(m)
     currentProgress = extractProgressMap(m)
 
-    if (message?.id !== currentMessage?.id) {
+    if (!isSameMessage(message, currentMessage)) {
       // A future message means means there is a massive clock skew issue,
       // so don't allow it. Instead, set the message time to now.
       const n = now()

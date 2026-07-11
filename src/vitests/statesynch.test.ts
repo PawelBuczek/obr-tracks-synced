@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   getMetadata: vi.fn(() => Promise.resolve({})),
   setMetadata: vi.fn(),
-  onMetadataChange: vi.fn(() => vi.fn()),
+  onMetadataChange: vi.fn(
+    (_handler?: (metadata: Record<string, unknown>) => void) => vi.fn(),
+  ),
   updateMetadata: vi.fn(),
 }))
 
@@ -65,6 +67,57 @@ describe("message state synchronization", () => {
     await pause()
 
     expect(mocks.updateMetadata).toHaveBeenCalled()
+  })
+
+  it("emits update when control message id is unchanged but track metadata changes", async () => {
+    const callback = vi.fn()
+
+    let metadata = {
+      [controlPath]: {
+        id: "same-id",
+        time: new Date().toISOString(),
+        action: Action.Play,
+        offset: 0,
+        duration: 100,
+        track: {
+          title: "Old",
+          url: "https://example.com/test.mp3",
+          tags: ["old"],
+        },
+      },
+    }
+
+    mocks.getMetadata.mockImplementation(() => Promise.resolve(metadata))
+    mocks.onMetadataChange.mockImplementation(
+      (handler?: (metadata: Record<string, unknown>) => void) => {
+      metadata = {
+        [controlPath]: {
+          ...metadata[controlPath],
+          track: {
+            title: "New",
+            url: "https://example.com/test.mp3",
+            tags: ["new"],
+          },
+        },
+      }
+      handler?.(metadata)
+      return vi.fn()
+      },
+    )
+
+    onMessage(callback)
+
+    await Promise.resolve()
+
+    expect(callback).toHaveBeenCalledTimes(2)
+    expect(
+      callback.mock.calls.some(
+        ([message]) =>
+          message?.id === "same-id" &&
+          message?.track.title === "New" &&
+          JSON.stringify(message?.track.tags) === JSON.stringify(["new"]),
+      ),
+    ).toBe(true)
   })
 })
 
