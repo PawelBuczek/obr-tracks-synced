@@ -329,4 +329,83 @@ describe("dual-GM conflict ordering", () => {
     expect(mocks.metadata[progressPath]).toEqual({})
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
+
+  it("same-url interleaved updates keep one track and apply final title", async () => {
+    const initial = {
+      title: "Original",
+      url: "https://example.com/track.mp3",
+      tags: ["old"],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [initial],
+      [progressPath]: {
+        [initial.url]: 7,
+      },
+    }
+
+    const firstOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Rename One",
+        url: initial.url,
+        tags: ["one"],
+      },
+    ])
+
+    const secondOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Rename Two",
+        url: initial.url,
+        tags: ["two"],
+      },
+    ])
+
+    expect(firstOutcome.changed).toBe(true)
+    expect(secondOutcome.changed).toBe(true)
+    expect(mocks.metadata[libraryPath]).toEqual([
+      {
+        title: "Rename Two",
+        url: initial.url,
+        tags: ["two"],
+      },
+    ])
+    expect(mocks.metadata[progressPath]).toEqual({
+      [initial.url]: 7,
+    })
+  })
+
+  it("clear-then-add allows reusing a previously occupied title", async () => {
+    mocks.metadata = {
+      [libraryPath]: [
+        {
+          title: "Occupied",
+          url: "https://example.com/old.mp3",
+          tags: ["old"],
+        },
+      ],
+      [progressPath]: {
+        "https://example.com/old.mp3": 21,
+      },
+    }
+
+    const clearOutcome = await clearRoomLibrary()
+    const addOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Occupied",
+        url: "https://example.com/new.mp3",
+        tags: ["new"],
+      },
+    ])
+
+    expect(clearOutcome.changed).toBe(true)
+    expect(addOutcome.changed).toBe(true)
+    expect(mocks.metadata[libraryPath]).toEqual([
+      {
+        title: "Occupied",
+        url: "https://example.com/new.mp3",
+        tags: ["new"],
+      },
+    ])
+    expect(mocks.metadata[progressPath]).toEqual({})
+  })
 })
