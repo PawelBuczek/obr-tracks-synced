@@ -11,10 +11,6 @@ npm install
 npx playwright install chromium
 ```
 
-Notes:
-- `npm install` installs all test tooling.
-- `npx playwright install chromium` downloads the browser binary used by E2E tests.
-
 ## Test Commands
 
 - `npm test`

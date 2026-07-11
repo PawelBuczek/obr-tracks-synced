@@ -164,6 +164,60 @@ describe("dual-GM conflict ordering", () => {
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
+  it("delete-then-readd-then-rename keeps the latest re-add without reviving playback", async () => {
+    const shareUrlTrack = {
+      title: "Old",
+      url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+      tags: ["a"],
+    }
+
+    const directUrlTrack = {
+      title: "Renamed Once",
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1",
+      tags: ["b"],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [shareUrlTrack],
+      [progressPath]: {
+        [shareUrlTrack.url]: 22,
+      },
+      [controlPath]: {
+        id: "playing",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 22,
+        duration: 180,
+        track: shareUrlTrack,
+      },
+    }
+
+    const deleteOutcome = await deleteTrackFromRoomLibrary(shareUrlTrack)
+
+    const firstReAddOutcome = await mergeTracksIntoRoomLibrary([directUrlTrack])
+
+    const secondReAddOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Renamed Twice",
+        url: shareUrlTrack.url,
+        tags: ["final"],
+      },
+    ])
+
+    expect(deleteOutcome.shouldStopPlayback).toBe(true)
+    expect(firstReAddOutcome.changed).toBe(true)
+    expect(secondReAddOutcome.changed).toBe(true)
+    expect(mocks.metadata[libraryPath]).toEqual([
+      {
+        title: "Renamed Twice",
+        url: directUrlTrack.url,
+        tags: ["final"],
+      },
+    ])
+    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[controlPath]).toBeUndefined()
+  })
+
   it("rejects duplicate-title merge when another writer already created that title", async () => {
     mocks.metadata = {
       [libraryPath]: [
@@ -439,6 +493,50 @@ describe("dual-GM conflict ordering", () => {
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
+  })
+
+  it("clear-then-add starts the new track from clean metadata", async () => {
+    const track = {
+      title: "Track",
+      url: "https://example.com/track.mp3",
+      tags: ["old"],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [track],
+      [progressPath]: {
+        [track.url]: 88,
+      },
+      [controlPath]: {
+        id: "playing-id",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 88,
+        duration: 300,
+        track,
+      },
+    }
+
+    const clearOutcome = await clearRoomLibrary()
+    const addOutcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Track",
+        url: "https://example.com/track.mp3",
+        tags: ["new"],
+      },
+    ])
+
+    expect(clearOutcome.changed).toBe(true)
+    expect(addOutcome.changed).toBe(true)
+    expect(mocks.metadata[libraryPath]).toEqual([
+      {
+        title: "Track",
+        url: "https://example.com/track.mp3",
+        tags: ["new"],
+      },
+    ])
+    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
   it("clear-then-stale-pause keeps playback cleared", async () => {

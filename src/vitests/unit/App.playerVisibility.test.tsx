@@ -19,6 +19,10 @@ const fixture = vi.hoisted(() => ({
   ],
 }))
 
+const roleState = vi.hoisted(() => ({
+  currentRole: 0,
+}))
+
 vi.mock("../../room/library", () => ({
   onLibraryChange: vi.fn((setLibrary: (tracks: typeof fixture.tracks) => void) => {
     setLibrary(fixture.tracks)
@@ -38,7 +42,7 @@ vi.mock("../../ui/player", () => ({
 
 vi.mock("../../ui/library", () => ({
   Confirm: () => null,
-  IconMenu: () => null,
+  IconMenu: () => <div data-testid="gm-icon-menu">IconMenu</div>,
   TrackDialog: () => null,
   TrackSearch: ({
     trackLibrary,
@@ -73,20 +77,23 @@ vi.mock("../../ui/providers", () => {
 
   return {
     Role,
-    useRole: vi.fn(() => Role.GM),
+    useRole: vi.fn(() => roleState.currentRole),
     useMessage: vi.fn(() => undefined),
-    GMOnly: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    GMOnly: ({ children }: { children?: React.ReactNode }) => (
+      <>{roleState.currentRole === Role.GM ? children : null}</>
+    ),
     WithRole: ({ gm, player }: { gm?: React.ReactNode; player?: React.ReactNode }) => (
-      <>{gm ?? player}</>
+      <>{roleState.currentRole === Role.GM ? gm : player}</>
     ),
   }
 })
 
-import { useMessage } from "../../ui/providers"
+import { Role, useMessage } from "../../ui/providers"
 
 describe("App player visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    roleState.currentRole = Role.GM
   })
 
   it("shows the player and keeps both library tracks rendered when playback starts", () => {
@@ -106,5 +113,17 @@ describe("App player visibility", () => {
     expect(screen.getByTestId("track-list")).toBeDefined()
     expect(screen.getByText("Track One")).toBeDefined()
     expect(screen.getByText("Track Two")).toBeDefined()
+  })
+
+  it("hides GM-only chrome for player users while keeping the shared player visible", () => {
+    roleState.currentRole = Role.Player
+
+    render(<App />)
+
+    expect(screen.getByTestId("player")).toBeDefined()
+    expect(screen.queryByTestId("track-list")).toBeNull()
+    expect(screen.queryByTestId("gm-icon-menu")).toBeNull()
+    expect(screen.queryByText("Track One")).toBeNull()
+    expect(screen.queryByText("Track Two")).toBeNull()
   })
 })
