@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   setMetadata: vi.fn(),
   onMetadataChange: vi.fn(() => vi.fn()),
   updateMetadata: vi.fn(),
+  updateMetadataWithCurrent: vi.fn(),
   stopPlayback: vi.fn(),
   removeTrackProgress: vi.fn((progress) => progress),
 }))
@@ -36,6 +37,7 @@ vi.mock("../infra/firebase", () => ({
 
 vi.mock("../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
+  updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
 }))
 
 vi.mock("../room/mb", async () => {
@@ -79,6 +81,16 @@ beforeEach(() => {
   })
 
   mocks.updateMetadata.mockResolvedValue(undefined)
+  mocks.updateMetadataWithCurrent.mockImplementation(async (transform) => {
+    const current = await mocks.getMetadata()
+    const update = await transform(current)
+
+    if (update) {
+      return mocks.updateMetadata(update)
+    }
+
+    return undefined
+  })
 })
 
   it("adds a track to the library", async () => {
@@ -156,6 +168,19 @@ beforeEach(() => {
 
 
   it("clears control metadata when clearing the library", async () => {
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [
+        {
+          title: "Track",
+          url: "https://example.com/track.mp3",
+          tags: [],
+        },
+      ],
+      [progressPath]: {
+        "https://example.com/track.mp3": 11,
+      },
+    })
+
     await clearLibrary()
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
@@ -181,6 +206,11 @@ beforeEach(() => {
         [track.url]: 42,
       },
       [controlPath]: {
+        id: "playing",
+        time: new Date().toISOString(),
+        action: 0,
+        offset: 0,
+        duration: 180,
         track,
       },
     })
@@ -258,5 +288,23 @@ beforeEach(() => {
       mocks.updateMetadata.mock.calls[0][0][controlPath],
     )
       .toBeUndefined()
+  })
+
+  it("no-ops delete when track was already removed by another writer", async () => {
+    const track = {
+      title: "Test Track",
+      url: "https://example.com/test.mp3",
+      tags: [],
+    }
+
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [],
+      [progressPath]: {},
+    })
+
+    await deleteTrackFromLibrary(track)
+
+    expect(mocks.updateMetadata).not.toHaveBeenCalled()
+    expect(mocks.stopPlayback).not.toHaveBeenCalled()
   })
 })

@@ -4,25 +4,26 @@ import { v4 as uuidv4 } from "uuid"
 import { Action, getPlaybackOffset, prepareTrackSelection, resetTrackProgress, TrackProgressMap } from "../domain/playback"
 import { Track } from "../domain/track"
 import { analytics } from "../infra/firebase"
-import { updateMetadata } from "../infra/metadataHelper"
 import { now } from "../infra/time"
 import { ObrError } from "../shared/errors"
-import { key } from "../shared/key"
 import { checkTrack, convertToDirectDownloadable } from "../shared/utils"
+import {
+  controlPath,
+  extractControlMessage,
+  extractProgressMap,
+  progressPath,
+  RoomControlMessage,
+} from "./metadataSchema"
+import {
+  clearControlAndWriteProgress,
+  writeControlAndProgress,
+} from "./stateOperations"
 
-export const controlPath = key("control")
-const progressPath = key("progress")
+export { controlPath }
 
 export { Action }
 
-export interface Message {
-  id: string
-  time: Date
-  action: Action
-  offset: number
-  duration: number
-  track: Track
-}
+export type Message = RoomControlMessage
 
 function newPlayMessage(
   track: Track,
@@ -68,51 +69,6 @@ function resumeCurrentMessage(): Message {
 let currentMessage: Message | undefined = undefined
 let currentProgress: TrackProgressMap = {}
 
-function isMessage(value: unknown): value is Message {
-  if (value === undefined) {
-    return false
-  }
-
-  const { id, time, action, offset, duration, track } = value as Message
-  return (
-    id !== undefined &&
-    time !== undefined &&
-    action !== undefined &&
-    offset !== undefined &&
-    duration !== undefined &&
-    track !== undefined
-  )
-}
-
-function extractMessage(metadata: Metadata): Message | undefined {
-  const data = metadata[controlPath]
-
-  if (isMessage(data)) {
-    const message = {
-      ...data,
-      time: new Date(data.time),
-    }
-
-    if (isNaN(message.time.getTime())) {
-      console.warn("Invalid message time", data)
-      return undefined
-    }
-
-    return message
-  }
-
-  return undefined
-}
-
-function extractProgress(metadata: Metadata): TrackProgressMap | undefined {
-  const data = metadata[progressPath]
-
-  if (data && typeof data === "object") {
-    return data as TrackProgressMap
-  }
-  return undefined
-}
-
 function getCurrentOffset(message: Message) {
   return getPlaybackOffset(message.offset, message.time, now())
 }
@@ -121,11 +77,8 @@ export function onMessage(
   callback: (message: Message | undefined) => void,
 ): () => void {
   const handler = (m: Metadata) => {
-    const message = extractMessage(m)
-    const progress = extractProgress(m)
-    if (progress !== undefined) {
-      currentProgress = progress
-    }
+    const message = extractControlMessage(m)
+    currentProgress = extractProgressMap(m)
 
     if (message?.id !== currentMessage?.id) {
       // A future message means means there is a massive clock skew issue,
@@ -180,10 +133,10 @@ export function play(track: Track) {
     throw new ObrError("Audio error: Unable to play track", fixed)
   }
   audio.onloadedmetadata = () => {
-    updateMetadata({
-      [controlPath]: newPlayMessage(fixed, audio.duration, offset),
-      [progressPath]: currentProgress,
-    })
+    writeControlAndProgress(
+      newPlayMessage(fixed, audio.duration, offset),
+      currentProgress,
+    )
   }
 
   audio.src = fixed.url
@@ -202,28 +155,19 @@ export function pause() {
     [currentMessage.track.url]: getCurrentOffset(currentMessage),
   }
 
-  updateMetadata({
-    [controlPath]: pauseCurrentMessage(),
-    [progressPath]: currentProgress,
-  })
+  writeControlAndProgress(pauseCurrentMessage(), currentProgress)
 }
 
 export function resume() {
   logEvent(analytics, "resume")
-  updateMetadata({
-    [controlPath]: resumeCurrentMessage(),
-    [progressPath]: currentProgress,
-  })
+  writeControlAndProgress(resumeCurrentMessage(), currentProgress)
 }
 
 export function stop() {
   console.log("[mb] stop() called")
   stopPlayback()
 
-  updateMetadata({
-    [controlPath]: undefined,
-    [progressPath]: currentProgress,
-  })
+  clearControlAndWriteProgress(currentProgress)
 }
 
 export function stopPlayback() {

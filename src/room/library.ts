@@ -1,17 +1,22 @@
 import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { EventEmitter } from "events"
 import { logEvent } from "firebase/analytics"
-import { removeTrackProgress, TrackProgressMap } from "../domain/playback"
+import { TrackProgressMap } from "../domain/playback"
 import { Track } from "../domain/track"
 import { analytics } from "../infra/firebase"
-import { updateMetadata } from "../infra/metadataHelper"
-import { ObrError } from "../shared/errors"
-import { key } from "../shared/key"
 import { checkTrack } from "../shared/utils"
-import { controlPath, stopPlayback } from "./mb"
-
-const libraryPath = key("library")
-const progressPath = key("progress")
+import { stopPlayback } from "./mb"
+import {
+  extractLibrary,
+  extractProgressMap,
+  libraryPath,
+} from "./metadataSchema"
+import {
+  clearRoomLibrary,
+  deleteTrackFromRoomLibrary,
+  mergeTracksIntoRoomLibrary,
+  writeLibrary,
+} from "./stateOperations"
 
 const eventEmitter = new EventEmitter()
 
@@ -44,17 +49,8 @@ function runWhenRoomReady(): Promise<void> {
 
 function readMetadata(metadata: Metadata) {
   console.log("[library] readMetadata", metadata)
-
-  const libraryData = metadata[libraryPath]
-
-  cachedLibrary = Array.isArray(libraryData) ? [...(libraryData as Track[])] : []
-
-  const progressData = metadata[progressPath]
-
-  cachedProgress =
-    progressData && typeof progressData === "object"
-      ? { ...(progressData as TrackProgressMap) }
-      : {}
+  cachedLibrary = extractLibrary(metadata)
+  cachedProgress = extractProgressMap(metadata)
 }
 
 async function refreshMetadataFromRoom() {
@@ -66,6 +62,14 @@ async function refreshMetadataFromRoom() {
   readMetadata(metadata)
 }
 
+function updateCacheFromOperationResult(
+  library: Track[],
+  progress: TrackProgressMap,
+) {
+  cachedLibrary = [...library]
+  cachedProgress = { ...progress }
+}
+
 async function setLibrary(tracks: Track[]) {
   console.trace("[library] setLibrary", tracks)
 
@@ -75,35 +79,7 @@ async function setLibrary(tracks: Track[]) {
 
   console.log("[library] writing library metadata")
 
-  await updateMetadata({
-    [libraryPath]: cachedLibrary,
-  })
-
-  push()
-}
-
-async function setLibraryAndProgress(
-  library: Track[],
-  progressMap: TrackProgressMap,
-  playbackUpdate?: Metadata,
-) {
-  console.trace("[library] setLibraryAndProgress", {
-    library,
-    progressMap,
-  })
-
-  cachedLibrary = [...library]
-  cachedProgress = { ...progressMap }
-
-  await runWhenRoomReady()
-
-  console.log("[library] writing library + progress metadata")
-
-  await updateMetadata({
-    [libraryPath]: cachedLibrary,
-    [progressPath]: cachedProgress,
-    ...playbackUpdate,
-  })
+  await writeLibrary(cachedLibrary)
 
   push()
 }
@@ -111,10 +87,6 @@ async function setLibraryAndProgress(
 function getStoredLibrary(): Track[] {
   console.log("[library] getStoredLibrary()", cachedLibrary)
   return cachedLibrary
-}
-
-function getStoredProgress(): TrackProgressMap {
-  return cachedProgress
 }
 
 function initializeRoomSync(): Promise<void> {
@@ -147,18 +119,6 @@ function initializeRoomSync(): Promise<void> {
   return roomSyncPromise
 }
 
-async function isTheTrackActivelyPlaying(trackUrl: String): Promise<boolean> {
-  if (!OBR.isAvailable) {
-    return false
-  }
-
-  const metadata = await OBR.room.getMetadata()
-
-  const currentMessage = metadata[controlPath] as { track?: Track } | undefined
-
-  return currentMessage?.track?.url === trackUrl
-}
-
 const roomSyncReady = initializeRoomSync()
 
 export function addTrackToLibrary(track: Track) {
@@ -173,22 +133,15 @@ export function deleteTrackFromLibrary(track: Track) {
   logEvent(analytics, "delete_track")
 
   return roomSyncReady.then(async () => {
-    await refreshMetadataFromRoom()
+    const outcome = await deleteTrackFromRoomLibrary(track)
+    updateCacheFromOperationResult(outcome.library, outcome.progress)
 
-    const currentLibrary = getLibrary()
-
-    const nextLibrary = currentLibrary.filter(t => t.url !== track.url)
-
-    if (await isTheTrackActivelyPlaying(track.url)) {
-      const nextProgress = removeTrackProgress(getStoredProgress(), track)
-
+    if (outcome.shouldStopPlayback) {
       stopPlayback()
+    }
 
-      await setLibraryAndProgress(nextLibrary, nextProgress, {
-        [controlPath]: undefined,
-      })
-    } else {
-      await setLibrary(nextLibrary)
+    if (outcome.changed) {
+      push()
     }
   })
 }
@@ -196,53 +149,18 @@ export function deleteTrackFromLibrary(track: Track) {
 export async function mergeLibrary(tracks: Track[]) {
   console.trace("[library] mergeLibrary", tracks)
 
-  await refreshMetadataFromRoom()
+  try {
+    const outcome = await mergeTracksIntoRoomLibrary(tracks)
+    updateCacheFromOperationResult(outcome.library, outcome.progress)
 
-  const currentLibrary = getLibrary()
-
-  const updatedLibrary = currentLibrary.map(track => ({
-    ...track,
-  }))
-
-  const newTracks: Track[] = []
-  const allTracks: Track[] = [...updatedLibrary]
-
-  tracks.forEach(t => {
-    const { fixed, validation } = checkTrack(t)
-
-    if (validation) {
-      throw new ObrError("Track validation failed", fixed, validation)
+    if (outcome.changed) {
+      push()
     }
-
-    const existingIndex = updatedLibrary.findIndex(
-      currentTrack => currentTrack.url === fixed.url,
-    )
-
-    const hasDuplicateTitle = allTracks.some(
-      currentTrack =>
-        currentTrack.title === fixed.title &&
-        currentTrack.url !== fixed.url,
-    )
-
-    if (hasDuplicateTitle) {
-      throw new ObrError("Track validation failed", fixed, {
-        titleValidation: "Title already exists",
-      })
-    }
-
-    if (existingIndex >= 0) {
-      updatedLibrary[existingIndex] = {
-        ...updatedLibrary[existingIndex],
-        title: fixed.title,
-        tags: fixed.tags,
-      }
-    } else {
-      newTracks.push(fixed)
-      allTracks.push(fixed)
-    }
-  })
-
-  await setLibrary([...newTracks, ...updatedLibrary])
+  } catch (error) {
+    // Keep local cache consistent with room state on validation failures.
+    await refreshMetadataFromRoom()
+    throw error
+  }
 }
 
 export function getLibrary(): Track[] {
@@ -255,12 +173,16 @@ export function clearLibrary() {
   logEvent(analytics, "clear_tracks")
 
   return roomSyncReady.then(async () => {
-    await refreshMetadataFromRoom()
-    stopPlayback()
+    const outcome = await clearRoomLibrary()
+    updateCacheFromOperationResult(outcome.library, outcome.progress)
 
-    await setLibraryAndProgress([], {}, {
-      [controlPath]: undefined,
-    })
+    if (outcome.shouldStopPlayback) {
+      stopPlayback()
+    }
+
+    if (outcome.changed) {
+      push()
+    }
   })
 }
 
