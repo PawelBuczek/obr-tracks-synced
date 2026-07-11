@@ -130,5 +130,6 @@ dist
 .pnp.*
 
 # others
+test-results/
 tempUpgradePlanDescription.md
 tempUpgradePlanProgress.md
