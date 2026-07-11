@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { Action } from "../domain/playback"
+import { Action } from "../../domain/playback"
 import {
   controlPath,
   extractControlMessage,
@@ -7,7 +7,7 @@ import {
   extractProgressMap,
   libraryPath,
   progressPath,
-} from "../room/metadataSchema"
+} from "../../room/metadataSchema"
 
 describe("metadata schema", () => {
   it("extracts only valid tracks from library metadata", () => {

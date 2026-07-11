@@ -25,15 +25,15 @@ vi.mock("firebase/analytics", () => ({
   getAnalytics: vi.fn(() => ({})),
 }))
 
-vi.mock("../infra/firebase", () => ({
+vi.mock("../../infra/firebase", () => ({
   analytics: {},
 }))
 
-vi.mock("../infra/metadataHelper", () => ({
+vi.mock("../../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
 }))
 
-import { Action, controlPath, onMessage, pause, stop } from "../room/mb"
+import { Action, controlPath, onMessage, pause, stop } from "../../room/mb"
 
 describe("message state synchronization", () => {
   beforeEach(() => {

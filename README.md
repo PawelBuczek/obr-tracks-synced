@@ -20,8 +20,17 @@ Check out the [store docs](docs/store.md)
 
 ## Development
 
-You can run `npx vitest run` and `npm run build` to check if the project at least builds. Some tests are there, but not many.
-Most of the testing just happens by deploying, adding custom extension in a room in Owlbear Rodeo and playing around.
+You can run `npm run build` to check that the project compiles.
+
+Automated tests are split into tiers:
+
+- Unit (fast, run often): `npm run test:unit`
+- Integration (still fast, cross-module): `npm run test:integration`
+- Simulation (slow/flaky, run on demand): `npm run test:simulation`
+- Full local suite: `npm run test:all`
+
+Default `npm test` runs unit tests.
+Manual Owlbear Rodeo testing is still recommended before deployment.
 
 ## Room Metadata Notes
 

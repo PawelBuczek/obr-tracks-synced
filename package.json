@@ -4,6 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run src/vitests/unit",
+    "test:integration": "vitest run src/vitests/integration",
+    "test:simulation": "vitest run src/vitests/simulation --passWithNoTests",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:simulation",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"

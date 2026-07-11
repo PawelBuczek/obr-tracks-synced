@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { Action } from "../domain/playback"
-import { Track } from "../domain/track"
+import { Action } from "../../domain/playback"
+import { Track } from "../../domain/track"
 
 const mocks = vi.hoisted(() => ({
   metadata: {} as Record<string, unknown>,
@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("../infra/metadataHelper", () => ({
+vi.mock("../../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
   updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
 }))
@@ -36,8 +36,8 @@ import {
   writeLibrary,
   writeLibraryAndProgress,
   writeLibraryAndProgressAndClearControl,
-} from "../room/stateOperations"
-import { controlPath, libraryPath, progressPath } from "../room/metadataSchema"
+} from "../../room/stateOperations"
+import { controlPath, libraryPath, progressPath } from "../../room/metadataSchema"
 
 const baseTrack: Track = {
   title: "Track",
