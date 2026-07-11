@@ -18,6 +18,11 @@ in my case: https://pawelbuczek.github.io/obr-tracks-pausing/manifest.json
 
 Check out the [store docs](docs/store.md)
 
+## Development
+
+You can run `npx vitest run` and `npm run build` to check if the project at least builds. Some tests are there, but not many.
+Most of the testing just happens by deploying, adding custom extension in a room in Owlbear Rodeo and playing around.
+
 ## Deployment
 
 This project is configured to deploy the static build to GitHub Pages via GitHub Actions.
