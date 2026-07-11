@@ -3,8 +3,8 @@ import { Track } from "../domain/track"
 import { checkTrack } from "../shared/utils"
 
 interface Row {
-  title: string
   url: string
+  title: string
   tags: string
 }
 
@@ -34,8 +34,8 @@ export function csvToTracks(text: string): {
   if (
     results.meta.fields === undefined ||
     results.meta.fields.length !== 3 ||
-    results.meta.fields[0] !== "title" ||
-    results.meta.fields[1] !== "url" ||
+    results.meta.fields[0] !== "url" ||
+    results.meta.fields[1] !== "title" ||
     results.meta.fields[2] !== "tags"
   ) {
     return { tracks: [], errors: [{ row: 0, errors: ["Invalid header"] }] }
@@ -93,8 +93,8 @@ export function csvToTracks(text: string): {
 export function TracksToCsv(tracks: Track[]): string {
   return Papa.unparse<Row>(
     tracks.map<Row>(r => ({
-      title: r.title,
       url: r.url,
+      title: r.title,
       tags: r.tags.join(tagDelimiter),
     })),
     options,

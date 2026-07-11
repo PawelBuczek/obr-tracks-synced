@@ -32,6 +32,7 @@ enum ActionType {
   checkTitle,
   setUrl,
   checkUrl,
+  autoFillTitle,
   setTags,
   setTrack,
   checkReadyToSave,
@@ -42,9 +43,38 @@ type Action =
   | { type: ActionType.checkTitle }
   | { type: ActionType.setUrl; payload: string }
   | { type: ActionType.checkUrl }
+  | { type: ActionType.autoFillTitle }
   | { type: ActionType.setTags; payload: string[] }
   | { type: ActionType.setTrack; payload: Track }
   | { type: ActionType.checkReadyToSave }
+
+// Helper function to safely extract a filename from a URL
+function extractTitleFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url)
+    // Handle Dropbox URLs
+    if (urlObj.hostname.includes("dropbox")) {
+      const path = urlObj.pathname
+      const filename = path.split("/").pop() || ""
+      // Remove query params and URL encoding
+      return decodeURIComponent(filename) || null
+    }
+    // For other URLs, try to extract the last path segment
+    const path = urlObj.pathname
+    const filename = path.split("/").pop() || ""
+    if (filename && !filename.includes(".")) {
+      return null // Skip if it's not file-like
+    }
+    return filename ? decodeURIComponent(filename) : null
+  } catch {
+    return null // Silently fail on invalid URL
+  }
+}
+
+// Helper function to remove common file extensions
+function removeExtension(filename: string): string {
+  return filename.replace(/\.[^/.]+$/, "")
+}
 
 function reducer(state: State, action: Action): State {
   const { type } = action
@@ -89,6 +119,26 @@ function reducer(state: State, action: Action): State {
         },
         readyToSave: false,
       }
+    }
+    case ActionType.autoFillTitle: {
+      // Only auto-fill if title is empty
+      if (state.track.title.trim()) {
+        return state
+      }
+      const extracted = extractTitleFromUrl(state.track.url)
+      if (extracted) {
+        const cleanTitle = removeExtension(extracted).trim()
+        if (cleanTitle) {
+          return {
+            ...state,
+            track: {
+              ...state.track,
+              title: cleanTitle,
+            },
+          }
+        }
+      }
+      return state
     }
     case ActionType.setTags:
       return {
@@ -146,6 +196,23 @@ export function TrackDialog(props: Props) {
       <DialogContent>
         <Stack spacing={4}>
           <TextField
+            error={state.urlError !== undefined}
+            helperText={state.urlError}
+            autoComplete="off"
+            value={state.track.url}
+            disabled={track !== undefined && track !== null}
+            variant="standard"
+            label="URL"
+            onBlur={() => {
+              dispatch({ type: ActionType.checkUrl })
+              dispatch({ type: ActionType.autoFillTitle })
+            }}
+            onChange={e =>
+              dispatch({ type: ActionType.setUrl, payload: e.target.value })
+            }
+            type="url"
+          />
+          <TextField
             error={state.titleError !== undefined}
             helperText={state.titleError}
             autoComplete="off"
@@ -157,20 +224,6 @@ export function TrackDialog(props: Props) {
               dispatch({ type: ActionType.setTitle, payload: e.target.value })
             }
             type="text"
-          />
-          <TextField
-            error={state.urlError !== undefined}
-            helperText={state.urlError}
-            autoComplete="off"
-            value={state.track.url}
-            disabled={track !== undefined && track !== null}
-            variant="standard"
-            label="Url"
-            onBlur={() => dispatch({ type: ActionType.checkUrl })}
-            onChange={e =>
-              dispatch({ type: ActionType.setUrl, payload: e.target.value })
-            }
-            type="url"
           />
           <Autocomplete
             value={state.track.tags}

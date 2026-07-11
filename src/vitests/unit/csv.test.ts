@@ -17,9 +17,9 @@ import { TracksToCsv, csvToTracks } from "../../io/csv"
 describe("csv import and export", () => {
   it("parses valid csv rows into tracks", () => {
     const input = [
-      "title,url,tags",
-      "Track A,https://example.com/a.mp3,ambient|calm",
-      "Track B,https://example.com/b.mp3,",
+      "url,title,tags",
+      "https://example.com/a.mp3,Track A,ambient|calm",
+      "https://example.com/b.mp3,Track B,",
     ].join("\n")
 
     const result = csvToTracks(input)
@@ -42,7 +42,7 @@ describe("csv import and export", () => {
   it("rejects invalid headers", () => {
     const input = [
       "name,url,tags",
-      "Track A,https://example.com/a.mp3,ambient",
+      "https://example.com/a.mp3,Track A,ambient",
     ].join("\n")
 
     const result = csvToTracks(input)
@@ -58,10 +58,10 @@ describe("csv import and export", () => {
 
   it("returns no tracks when any row has validation errors", () => {
     const input = [
-      "title,url,tags",
-      "Good,https://example.com/good.mp3,ok",
-      ",https://example.com/blank-title.mp3,bad",
-      "Bad Url,not-a-url,bad",
+      "url,title,tags",
+      "https://example.com/good.mp3,Good,ok",
+      "https://example.com/blank-title.mp3,,bad",
+      "not-a-url,Bad Url,bad",
     ].join("\n")
 
     const result = csvToTracks(input)
