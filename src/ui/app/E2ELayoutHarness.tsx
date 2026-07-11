@@ -5,6 +5,7 @@ import {
   Card,
   CardHeader,
   Collapse,
+  LinearProgress,
   List,
   ListItem,
   Toolbar,
@@ -21,6 +22,28 @@ export function E2ELayoutHarness() {
     [],
   )
   const [isPlaying, setIsPlaying] = useState(false)
+  const [activeTrackIndex, setActiveTrackIndex] = useState(0)
+  const [switchingToIndex, setSwitchingToIndex] = useState<number | undefined>(
+    undefined,
+  )
+
+  const startPlayback = () => {
+    setActiveTrackIndex(0)
+    setIsPlaying(true)
+  }
+
+  const switchTrack = (nextIndex: number) => {
+    if (!isPlaying || nextIndex === activeTrackIndex || switchingToIndex !== undefined) {
+      return
+    }
+
+    // Simulate canonical room commit delay during track switch.
+    setSwitchingToIndex(nextIndex)
+    setTimeout(() => {
+      setActiveTrackIndex(nextIndex)
+      setSwitchingToIndex(undefined)
+    }, 350)
+  }
 
   return (
     <Box>
@@ -33,7 +56,7 @@ export function E2ELayoutHarness() {
             color="inherit"
             variant="outlined"
             data-testid="start-playback"
-            onClick={() => setIsPlaying(true)}
+            onClick={startPlayback}
           >
             Start Track One
           </Button>
@@ -42,7 +65,17 @@ export function E2ELayoutHarness() {
         <Collapse in={isPlaying}>
           <Toolbar variant="dense">
             <Card data-testid="player" sx={{ minWidth: "100%", marginBottom: 2, marginTop: 1 }}>
-              <CardHeader subheader="Track One" />
+              <CardHeader
+                subheader={tracks[activeTrackIndex].title}
+                slotProps={{
+                  subheader: {
+                    "data-testid": "player-title",
+                  },
+                }}
+              />
+              {switchingToIndex !== undefined && (
+                <LinearProgress data-testid="player-switching" />
+              )}
             </Card>
           </Toolbar>
         </Collapse>
@@ -55,9 +88,23 @@ export function E2ELayoutHarness() {
       </Collapse>
 
       <List data-testid="track-list">
-        {tracks.map(track => (
-          <ListItem key={track.url} component="div" data-testid="track-item">
-            {track.title}
+        {tracks.map((track, index) => (
+          <ListItem
+            key={track.url}
+            component="div"
+            data-testid="track-item"
+            sx={{ gap: 1 }}
+          >
+            <Typography sx={{ flexGrow: 1 }}>{track.title}</Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => switchTrack(index)}
+              data-testid={`switch-to-track-${index + 1}`}
+              disabled={!isPlaying || index === activeTrackIndex || switchingToIndex !== undefined}
+            >
+              Play
+            </Button>
           </ListItem>
         ))}
       </List>

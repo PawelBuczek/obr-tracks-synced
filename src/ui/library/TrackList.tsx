@@ -30,8 +30,7 @@ interface TrackCardProps {
 function TrackCard(props: TrackCardProps) {
   const { track, editTrack, confirm, matches } = props
   const currentMessage = useMessage()
-  const { optimisticPause, optimisticPlay, optimisticResume } =
-    useMessageOptimisticActions()
+  const { optimisticPause, optimisticResume } = useMessageOptimisticActions()
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number
     mouseY: number
@@ -77,7 +76,6 @@ function TrackCard(props: TrackCardProps) {
         pause()
         return
       default:
-        optimisticPlay(track)
         play(track)
     }
   }

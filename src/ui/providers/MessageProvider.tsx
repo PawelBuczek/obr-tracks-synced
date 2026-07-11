@@ -6,8 +6,9 @@ import {
   useState,
 } from "react"
 import { Message, Action, onMessage } from "../../room/mb"
-import { Track } from "../../domain/track"
+import { isSameTrack, Track } from "../../domain/track"
 import { getSeconds } from "../../shared/utils"
+import { checkTrack, convertToDirectDownloadable } from "../../shared/utils"
 
 const Context = createContext<Message | undefined>(undefined)
 
@@ -55,7 +56,7 @@ function matchesCanonical(
   if (optimistic.action === Action.Play || optimistic.action === Action.Pause) {
     return (
       message.action === optimistic.action &&
-      message.track.url === optimistic.track.url
+      isSameTrack(message.track, optimistic.track)
     )
   }
 
@@ -97,6 +98,22 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
   const optimisticWindowMs = 2000
   const now = () => Date.now()
 
+  const normalizeTrackForOptimisticPlay = (track: Track): Track | undefined => {
+    const { fixed, validation } = checkTrack(track)
+    if (validation) {
+      return undefined
+    }
+
+    try {
+      return {
+        ...fixed,
+        url: convertToDirectDownloadable(fixed.url),
+      }
+    } catch {
+      return undefined
+    }
+  }
+
   const visibleMessage =
     override?.kind === "none"
       ? undefined
@@ -106,6 +123,11 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
 
   const actions: OptimisticMessageActions = {
     optimisticPlay: track => {
+      const normalizedTrack = normalizeTrackForOptimisticPlay(track)
+      if (!normalizedTrack) {
+        return
+      }
+
       const base = visibleMessage
       setOverride({
         kind: "message",
@@ -114,9 +136,12 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
           id: base?.id ?? "optimistic-play",
           time: new Date(),
           action: Action.Play,
-          offset: base?.track.url === track.url ? base.offset : 0,
-          duration: base?.track.url === track.url ? base.duration : 0,
-          track,
+          offset: base?.track && isSameTrack(base.track, normalizedTrack) ? base.offset : 0,
+          duration:
+            base?.track && isSameTrack(base.track, normalizedTrack)
+              ? base.duration
+              : 0,
+          track: normalizedTrack,
         },
       })
     },
