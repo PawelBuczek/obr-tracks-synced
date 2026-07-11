@@ -25,12 +25,32 @@ You can run `npm run build` to check that the project compiles.
 Automated tests are split into tiers:
 
 - Unit (fast, run often): `npm run test:unit`
+  - Includes pure logic tests and UI component tests with mocked state
+  - UI tests use React Testing Library and jsdom environment
 - Integration (still fast, cross-module): `npm run test:integration`
 - Simulation (slow/flaky, run on demand): `npm run test:simulation`
 - Full local suite: `npm run test:all`
 
 Default `npm test` runs unit tests.
 Manual Owlbear Rodeo testing is still recommended before deployment.
+
+### UI Component Testing
+
+UI component tests render React components with mocked state and verify rendering, user interactions, and edge cases. Tests use:
+
+- `@testing-library/react` for rendering and querying
+- jsdom for a simulated DOM environment
+- Vitest with mocked room/state providers
+
+To run only UI tests or examine them:
+
+```bash
+npm run test:unit -- TrackProgress  # run just TrackProgress tests
+npm run test:unit -- --reporter=verbose  # verbose output
+```
+
+Current UI test coverage:
+- [TrackProgress.test.tsx](src/vitests/unit/TrackProgress.test.tsx) - interactive progress slider, seeking, timer display
 
 ## Room Metadata Notes
 

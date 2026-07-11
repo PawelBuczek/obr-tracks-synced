@@ -208,3 +208,46 @@ export function stopPlayback() {
     currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
   }
 }
+
+export function seekToOffset(offsetSeconds: number) {
+  logEvent(analytics, "seek", { offset: offsetSeconds })
+
+  if (!currentMessage) {
+    throw new ObrError("Unable to seek before receiving first message")
+  }
+
+  // Clamp offset to valid range [0, duration)
+  const clampedOffset = Math.max(0, Math.min(offsetSeconds, currentMessage.duration - 0.001))
+
+  if (currentMessage.action === Action.Pause) {
+    // If paused, just update the offset and stay paused
+    const updatedMessage = newPlayMessage(
+      currentMessage.track,
+      currentMessage.duration,
+      clampedOffset,
+    )
+    updatedMessage.action = Action.Pause
+
+    currentProgress = {
+      ...currentProgress,
+      [currentMessage.track.url]: clampedOffset,
+    }
+
+    writeControlAndProgress(updatedMessage, currentProgress)
+  } else {
+    // If playing, resume from the new offset
+    const updatedMessage = newPlayMessage(
+      currentMessage.track,
+      currentMessage.duration,
+      clampedOffset,
+    )
+    updatedMessage.action = Action.Play
+
+    currentProgress = {
+      ...currentProgress,
+      [currentMessage.track.url]: clampedOffset,
+    }
+
+    writeControlAndProgress(updatedMessage, currentProgress)
+  }
+}
