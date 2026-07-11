@@ -6,9 +6,9 @@ import {
   prepareTrackSelection,
   removeTrackProgress,
   resetTrackProgress,
-} from "./playback"
-import { isSameTrack, Track } from "./track"
-import { getTrackListClickAction } from "./trackListActions"
+} from "../playback"
+import { isSameTrack, Track } from "../track"
+import { getTrackListClickAction } from "../trackListActions"
 
 describe("prepareTrackSelection", () => {
   it("saves the current track progress when switching tracks and resumes the new one from its saved offset", () => {

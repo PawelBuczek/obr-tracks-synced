@@ -7,6 +7,8 @@ import { Action, pause, resume, stop } from "../mb"
 
 export function ControlButtons() {
   const currentMessage = useMessage()
+  console.log("React currentMessage", currentMessage);
+  
   return (
     <ButtonGroup>
       <IconButton disabled={currentMessage === undefined} onClick={stop}>

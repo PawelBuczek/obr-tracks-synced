@@ -21,23 +21,25 @@ vi.mock("@owlbear-rodeo/sdk", () => ({
 
 vi.mock("firebase/analytics", () => ({
   logEvent: vi.fn(),
+  setConsent: vi.fn(),
+  getAnalytics: vi.fn(() => ({})),
 }))
 
 vi.mock("./firebase", () => ({
   analytics: {},
 }))
 
-vi.mock("./metadataHelper", () => ({
+vi.mock("../metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
 }))
 
 import {
   clearLibrary,
   deleteTrackFromLibrary,
-} from "./library"
+} from "../library"
 
-import { controlPath } from "./mb"
-import { key } from "./key"
+import { controlPath } from "../mb"
+import { key } from "../key"
 
 const libraryPath = key("library")
 const progressPath = key("progress")
