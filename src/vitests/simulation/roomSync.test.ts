@@ -82,7 +82,9 @@ async function createClient(name: string): Promise<Client> {
 
   const messages: Message[] = []
   const unsubscribe = onMessage(message => {
-    messages.push(message)
+    if (message) {
+      messages.push(message)
+    }
   })
 
   await flushMicrotasks()
@@ -101,7 +103,9 @@ async function createRecoveryClient() {
 
   const messages: Message[] = []
   const unsubscribe = onMessage(message => {
-    messages.push(message)
+    if (message) {
+      messages.push(message)
+    }
   })
 
   await flushMicrotasks()

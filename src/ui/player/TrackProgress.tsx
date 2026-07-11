@@ -28,10 +28,14 @@ function TimeTypography(props: { seconds: number }) {
 }
 
 export function TrackProgress() {
+  const optimisticSeekWindowMs = 2000
   const currentMessage = useMessage()
   const [progress, setProgress] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [dragValue, setDragValue] = useState(0)
+  const [optimisticSeek, setOptimisticSeek] = useState<
+    { seconds: number; expiresAt: number } | undefined
+  >(undefined)
 
   useEffect(() => {
     if (currentMessage) {
@@ -54,6 +58,35 @@ export function TrackProgress() {
     setProgress(0)
   }, [currentMessage])
 
+  useEffect(() => {
+    if (!optimisticSeek) {
+      return
+    }
+
+    const msUntilExpire = Math.max(0, optimisticSeek.expiresAt - Date.now())
+    const timeoutId = setTimeout(() => {
+      setOptimisticSeek(undefined)
+    }, msUntilExpire)
+
+    return () => clearTimeout(timeoutId)
+  }, [optimisticSeek])
+
+  useEffect(() => {
+    if (!currentMessage || !optimisticSeek) {
+      return
+    }
+
+    const syncedProgress =
+      currentMessage.action === Action.Pause
+        ? currentMessage.offset % currentMessage.duration
+        : (currentMessage.offset + getSeconds(currentMessage.time)) %
+          currentMessage.duration
+
+    if (Math.abs(syncedProgress - optimisticSeek.seconds) <= 1) {
+      setOptimisticSeek(undefined)
+    }
+  }, [currentMessage, optimisticSeek])
+
   const handleSliderChange = (_event: Event, value: number | number[]) => {
     if (typeof value === "number" && currentMessage) {
       // Convert percentage (0-100) to seconds
@@ -70,6 +103,11 @@ export function TrackProgress() {
       try {
         // Convert percentage (0-100) to seconds
         const seconds = (value / 100) * currentMessage.duration
+        setProgress(seconds)
+        setOptimisticSeek({
+          seconds,
+          expiresAt: Date.now() + optimisticSeekWindowMs,
+        })
         seekToOffset(seconds)
       } catch (error) {
         console.error("Failed to seek:", error)
@@ -86,7 +124,9 @@ export function TrackProgress() {
     return <Skeleton variant="rounded" animation="wave" height={5} />
   }
 
-  const displayedProgress = isDragging ? dragValue : progress
+  const displayedProgress = isDragging
+    ? dragValue
+    : optimisticSeek?.seconds ?? progress
   const sliderValue =
     currentMessage.duration > 0
       ? (displayedProgress / currentMessage.duration) * 100

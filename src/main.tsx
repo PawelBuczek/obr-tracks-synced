@@ -1,7 +1,5 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { App } from "./ui/app"
-import { E2ELayoutHarness } from "./ui/app/E2ELayoutHarness"
 import {
   MessageProvider,
   PluginGate,
@@ -15,14 +13,19 @@ const isE2EMode =
   import.meta.env.DEV && new URLSearchParams(window.location.search).has("e2e")
 
 if (isE2EMode) {
-  root.render(
-    <React.StrictMode>
-      <E2ELayoutHarness />
-    </React.StrictMode>,
-  )
+  void import("./ui/app/E2ELayoutHarness").then(({ E2ELayoutHarness }) => {
+    root.render(
+      <React.StrictMode>
+        <E2ELayoutHarness />
+      </React.StrictMode>,
+    )
+  })
 } else {
-  void Promise.all([import("./room/library"), import("./infra/time")]).then(
-    ([libraryModule, timeModule]) => {
+  void Promise.all([
+    import("./ui/app"),
+    import("./room/library"),
+    import("./infra/time"),
+  ]).then(([appModule, libraryModule, timeModule]) => {
       // clean the library before starting the app
       libraryModule.cleanLibrary()
 
@@ -33,7 +36,7 @@ if (isE2EMode) {
               <PluginThemeProvider>
                 <MessageProvider>
                   <RoleProvider>
-                    <App />
+                    <appModule.App />
                   </RoleProvider>
                 </MessageProvider>
               </PluginThemeProvider>
@@ -41,6 +44,5 @@ if (isE2EMode) {
           </React.StrictMode>,
         ),
       )
-    },
-  )
+    })
 }
