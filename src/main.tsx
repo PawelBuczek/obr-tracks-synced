@@ -1,5 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
+import { setSkew } from "./infra/time"
 import {
   MessageProvider,
   PluginGate,
@@ -24,12 +25,11 @@ if (isE2EMode) {
   void Promise.all([
     import("./ui/app"),
     import("./room/library"),
-    import("./infra/time"),
-  ]).then(([appModule, libraryModule, timeModule]) => {
+  ]).then(([appModule, libraryModule]) => {
       // clean the library before starting the app
       libraryModule.cleanLibrary()
 
-      timeModule.setSkew(() =>
+      setSkew(() =>
         root.render(
           <React.StrictMode>
             <PluginGate>
