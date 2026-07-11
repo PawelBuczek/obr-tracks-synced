@@ -173,7 +173,6 @@ export function addTrackToLibrary(track: Track) {
   logEvent(analytics, "add_track")
 
   return roomSyncReady.then(async () => {
-    await refreshMetadataFromRoom()
     await mergeLibrary([track])
   })
 }
@@ -223,6 +222,7 @@ export async function mergeLibrary(tracks: Track[]) {
   }))
 
   const newTracks: Track[] = []
+  const allTracks: Track[] = [...updatedLibrary]
 
   tracks.forEach(t => {
     const { fixed, validation } = checkTrack(t)
@@ -239,6 +239,22 @@ export async function mergeLibrary(tracks: Track[]) {
       currentTrack => currentTrack.url === fixed.url,
     )
 
+    const hasDuplicateTitle = allTracks.some(
+      currentTrack =>
+        currentTrack.title === fixed.title &&
+        currentTrack.url !== fixed.url,
+    )
+
+    if (hasDuplicateTitle) {
+      throw new ObrError(
+        "Track validation failed",
+        fixed,
+        {
+          titleValidation: "Title already exists",
+        },
+      )
+    }
+
     if (existingIndex >= 0) {
       updatedLibrary[existingIndex] = {
         ...updatedLibrary[existingIndex],
@@ -247,6 +263,7 @@ export async function mergeLibrary(tracks: Track[]) {
       }
     } else {
       newTracks.push(fixed)
+      allTracks.push(fixed)
     }
   })
 

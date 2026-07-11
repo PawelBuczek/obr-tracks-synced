@@ -18,6 +18,9 @@ vi.mock("@owlbear-rodeo/sdk", () => ({
       setMetadata: mocks.setMetadata,
       onMetadataChange: mocks.onMetadataChange,
     },
+    notification: {
+      show: vi.fn(),
+    },
   },
 }))
 
@@ -94,6 +97,61 @@ beforeEach(() => {
         [libraryPath]: [track],
       }),
     )
+  })
+
+  it("updates an existing track when the same url is added again", async () => {
+    const originalTrack = {
+      title: "Original Track",
+      url: "https://example.com/test.mp3",
+      tags: ["one"],
+    }
+
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [originalTrack],
+      [progressPath]: {},
+    })
+
+    const updatedTrack = {
+      title: "Updated Track",
+      url: "https://example.com/test.mp3",
+      tags: ["two"],
+    }
+
+    await addTrackToLibrary(updatedTrack)
+
+    expect(getLibrary()).toContainEqual(updatedTrack)
+    expect(getLibrary()).toHaveLength(1)
+    expect(mocks.updateMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [libraryPath]: [updatedTrack],
+      }),
+    )
+  })
+
+  it("rejects adding a track with a duplicate title", async () => {
+    const existingTrack = {
+      title: "Test Track",
+      url: "https://example.com/original.mp3",
+      tags: [],
+    }
+
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [existingTrack],
+      [progressPath]: {},
+    })
+
+    const duplicateTitleTrack = {
+      title: "Test Track",
+      url: "https://example.com/new.mp3",
+      tags: ["different"],
+    }
+
+    await expect(addTrackToLibrary(duplicateTitleTrack)).rejects.toThrow(
+      "Track validation failed",
+    )
+
+    expect(mocks.updateMetadata).not.toHaveBeenCalled()
+    expect(getLibrary()).toEqual([existingTrack])
   })
 
 
