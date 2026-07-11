@@ -1,6 +1,6 @@
 import { Slider } from "@mui/material"
 import { useEffect, useState } from "react"
-import { getVolume, setVolume } from "../../volume"
+import { getVolume, setVolume } from "../../shared/volume"
 
 interface Props {
   onVolume: (volume: number) => void

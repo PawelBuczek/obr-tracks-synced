@@ -2,7 +2,7 @@ import PauseRoundedIcon from "@mui/icons-material/PauseRounded"
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded"
 import StopRoundedIcon from "@mui/icons-material/StopRounded"
 import { ButtonGroup, IconButton } from "@mui/material"
-import { Action, pause, resume, stop } from "../../mb"
+import { Action, pause, resume, stop } from "../../room/mb"
 import { useMessage } from "../providers/MessageProvider"
 
 export function ControlButtons() {

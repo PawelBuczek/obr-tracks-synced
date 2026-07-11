@@ -6,8 +6,8 @@ import {
   useTheme,
 } from "@mui/material"
 import { useEffect, useState } from "react"
-import { Action } from "../../mb"
-import { getSeconds } from "../../utils"
+import { Action } from "../../room/mb"
+import { getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
 
 function secondsToDisplay(seconds: number): string {

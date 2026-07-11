@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getTimeSyncUrl } from "../timeUrl"
+import { getTimeSyncUrl } from "../shared/timeUrl"
 
 describe("getTimeSyncUrl", () => {
   it("keeps the GitHub Pages subpath when deriving the time sync URL", () => {

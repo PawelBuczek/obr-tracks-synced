@@ -10,9 +10,9 @@ import {
   TextField,
 } from "@mui/material"
 import { useEffect, useReducer } from "react"
-import { addTrackToLibrary } from "../../library"
-import { Track, emptyTrack } from "../../track"
-import { checkTitle, checkTrack, checkUrl } from "../../utils"
+import { Track, emptyTrack } from "../../domain/track"
+import { addTrackToLibrary } from "../../room/library"
+import { checkTitle, checkTrack, checkUrl } from "../../shared/utils"
 
 interface Props {
   onClose: () => void

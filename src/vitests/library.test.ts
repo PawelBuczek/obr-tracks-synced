@@ -30,16 +30,16 @@ vi.mock("firebase/analytics", () => ({
   getAnalytics: vi.fn(() => ({})),
 }))
 
-vi.mock("./firebase", () => ({
+vi.mock("../infra/firebase", () => ({
   analytics: {},
 }))
 
-vi.mock("../metadataHelper", () => ({
+vi.mock("../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
 }))
 
-vi.mock("../mb", async () => {
-  const actual = await vi.importActual("../mb")
+vi.mock("../room/mb", async () => {
+  const actual = await vi.importActual("../room/mb")
 
   return {
     ...actual,
@@ -47,8 +47,8 @@ vi.mock("../mb", async () => {
   }
 })
 
-vi.mock("../playback", async () => {
-  const actual = await vi.importActual("../playback")
+vi.mock("../domain/playback", async () => {
+  const actual = await vi.importActual("../domain/playback")
 
   return {
     ...actual,
@@ -61,10 +61,10 @@ import {
   deleteTrackFromLibrary,
   addTrackToLibrary,
   getLibrary,
-} from "../library"
+} from "../room/library"
 
-import { controlPath } from "../mb"
-import { key } from "../key"
+import { controlPath } from "../room/mb"
+import { key } from "../shared/key"
 
 const libraryPath = key("library")
 const progressPath = key("progress")

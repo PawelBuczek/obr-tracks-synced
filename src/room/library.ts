@@ -1,14 +1,14 @@
 import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { EventEmitter } from "events"
 import { logEvent } from "firebase/analytics"
-import { removeTrackProgress, TrackProgressMap } from "../playback"
-import { Track } from "../track"
-import { analytics } from "../firebase"
-import { updateMetadata } from "../metadataHelper"
+import { removeTrackProgress, TrackProgressMap } from "../domain/playback"
+import { Track } from "../domain/track"
+import { analytics } from "../infra/firebase"
+import { updateMetadata } from "../infra/metadataHelper"
 import { ObrError } from "../shared/errors"
 import { key } from "../shared/key"
 import { checkTrack } from "../shared/utils"
-import { controlPath, stopPlayback } from "../mb"
+import { controlPath, stopPlayback } from "./mb"
 
 const libraryPath = key("library")
 const progressPath = key("progress")

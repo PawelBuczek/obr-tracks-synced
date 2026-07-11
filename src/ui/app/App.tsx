@@ -9,19 +9,19 @@ import {
 import OBR from "@owlbear-rodeo/sdk"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
-import { onLibraryChange } from "../../library"
-import { Track } from "../../track"
-import { ActionPopover } from "../controls/ActionPopover"
-import { MuteButton } from "../controls/MuteButton"
-import { VolumeSlider } from "../controls/VolumeSlider"
-import { Confirm, ConfirmPayload } from "../library/Confirm"
-import { IconMenu } from "../library/IconMenu"
-import { TrackDialog } from "../library/TrackDialog"
-import { TrackList } from "../library/TrackList"
-import { TrackSearch } from "../library/TrackSearch"
-import { Player } from "../player/Player"
-import { useMessage } from "../providers/MessageProvider"
-import { GMOnly, Role, WithRole, useRole } from "../providers/RoleProvider"
+import { onLibraryChange } from "../../room/library"
+import { Track } from "../../domain/track"
+import { ActionPopover, MuteButton, VolumeSlider } from "../controls"
+import {
+  Confirm,
+  ConfirmPayload,
+  IconMenu,
+  TrackDialog,
+  TrackList,
+  TrackSearch,
+} from "../library"
+import { Player } from "../player"
+import { GMOnly, Role, useMessage, useRole, WithRole } from "../providers"
 
 export function App() {
   const currentMessage = useMessage()

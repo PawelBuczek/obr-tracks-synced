@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
-import { Action } from "../../mb"
-import { getSeconds } from "../../utils"
+import { Action } from "../../room/mb"
+import { getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
 import { TrackProgress } from "./TrackProgress"
 

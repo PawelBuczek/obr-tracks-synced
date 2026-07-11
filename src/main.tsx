@@ -1,13 +1,15 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { App } from "./ui/app/App"
-import { MessageProvider } from "./ui/providers/MessageProvider"
-import { PluginGate } from "./ui/providers/PluginGate"
-import { PluginThemeProvider } from "./ui/providers/PluginThemeProvider"
-import { RoleProvider } from "./ui/providers/RoleProvider"
-import "./firebase"
-import { cleanLibrary } from "./library"
-import { setSkew } from "./time"
+import { App } from "./ui/app"
+import {
+  MessageProvider,
+  PluginGate,
+  PluginThemeProvider,
+  RoleProvider,
+} from "./ui/providers"
+import "./infra/firebase"
+import { cleanLibrary } from "./room/library"
+import { setSkew } from "./infra/time"
 
 // clean the library before starting the app
 cleanLibrary()
