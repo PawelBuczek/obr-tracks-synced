@@ -1,14 +1,12 @@
 import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { EventEmitter } from "events"
 import { logEvent } from "firebase/analytics"
-import { TrackProgressMap } from "../domain/playback"
 import { Track } from "../domain/track"
 import { analytics } from "../infra/firebase"
 import { checkTrack } from "../shared/utils"
 import { stopPlayback } from "./mb"
 import {
   extractLibrary,
-  extractProgressMap,
   libraryPath,
 } from "./metadataSchema"
 import {
@@ -21,7 +19,6 @@ import {
 const eventEmitter = new EventEmitter()
 
 let cachedLibrary: Track[] = []
-let cachedProgress: TrackProgressMap = {}
 
 let roomReady = false
 let roomSyncPromise: Promise<void> | undefined
@@ -50,7 +47,6 @@ function runWhenRoomReady(): Promise<void> {
 function readMetadata(metadata: Metadata) {
   console.log("[library] readMetadata", metadata)
   cachedLibrary = extractLibrary(metadata)
-  cachedProgress = extractProgressMap(metadata)
 }
 
 async function refreshMetadataFromRoom() {
@@ -62,12 +58,8 @@ async function refreshMetadataFromRoom() {
   readMetadata(metadata)
 }
 
-function updateCacheFromOperationResult(
-  library: Track[],
-  progress: TrackProgressMap,
-) {
+function updateCacheFromOperationResult(library: Track[]) {
   cachedLibrary = [...library]
-  cachedProgress = { ...progress }
 }
 
 async function setLibrary(tracks: Track[]) {
@@ -134,7 +126,7 @@ export function deleteTrackFromLibrary(track: Track) {
 
   return roomSyncReady.then(async () => {
     const outcome = await deleteTrackFromRoomLibrary(track)
-    updateCacheFromOperationResult(outcome.library, outcome.progress)
+    updateCacheFromOperationResult(outcome.library)
 
     if (outcome.shouldStopPlayback) {
       stopPlayback()
@@ -151,7 +143,7 @@ export async function mergeLibrary(tracks: Track[]) {
 
   try {
     const outcome = await mergeTracksIntoRoomLibrary(tracks)
-    updateCacheFromOperationResult(outcome.library, outcome.progress)
+    updateCacheFromOperationResult(outcome.library)
 
     if (outcome.changed) {
       push()
@@ -174,7 +166,7 @@ export function clearLibrary() {
 
   return roomSyncReady.then(async () => {
     const outcome = await clearRoomLibrary()
-    updateCacheFromOperationResult(outcome.library, outcome.progress)
+    updateCacheFromOperationResult(outcome.library)
 
     if (outcome.shouldStopPlayback) {
       stopPlayback()

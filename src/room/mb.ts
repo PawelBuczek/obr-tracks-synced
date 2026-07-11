@@ -11,7 +11,6 @@ import {
   controlPath,
   extractControlMessage,
   extractProgressMap,
-  progressPath,
   RoomControlMessage,
 } from "./metadataSchema"
 import {
