@@ -8,6 +8,7 @@
     "test:unit": "vitest run src/vitests/unit",
     "test:integration": "vitest run src/vitests/integration",
     "test:simulation": "vitest run src/vitests/simulation --passWithNoTests",
+    "test:e2e": "playwright test",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:simulation",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@playwright/test": "^1.56.1",
     "@types/node": "^26.1.1",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.17",
