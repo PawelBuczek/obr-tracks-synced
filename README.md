@@ -1,4 +1,4 @@
-# TracksPausing
+# TracksSynced
 
 Play long looping background music and ambiance from your own library with builtin search and synchronized playback.
 
@@ -12,7 +12,7 @@ After deployment, the manifest will be available at:
 
 https://<your-github-username>.github.io/<your-repo>/manifest.json
 
-in my case: https://pawelbuczek.github.io/obr-tracks-pausing/manifest.json
+in my case: https://pawelbuczek.github.io/obr-tracks-synced/manifest.json
 
 ## More info
 

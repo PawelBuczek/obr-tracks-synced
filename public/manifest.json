@@ -1,14 +1,14 @@
 {
-  "name": "TracksPausing",
+  "name": "TracksSynced",
   "description": "Play long looping background music and ambiance from your own library with builtin search and synchronized playback",
   "version": "2.1.0",
   "manifest_version": 1,
-  "icon": "/obr-tracks-pausing/tracks_256.png",
+  "icon": "/obr-tracks-synced/tracks_256.png",
   "author": "Pawel Buczek (based on Jordan Cohen's work)",
   "action": {
-    "title": "TracksPausing",
-    "icon": "/obr-tracks-pausing/album_black_24dp.svg",
-    "popover": "/obr-tracks-pausing/",
+    "title": "TracksSynced",
+    "icon": "/obr-tracks-synced/album_black_24dp.svg",
+    "popover": "/obr-tracks-synced/",
     "width": 400
   }
 }
