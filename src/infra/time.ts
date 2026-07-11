@@ -12,6 +12,7 @@ export function now() {
 
 export function setSkew(callback: () => void) {
   if (!isBrowser) {
+    callback()
     return
   }
 
@@ -19,28 +20,31 @@ export function setSkew(callback: () => void) {
     const timeSyncUrl = getTimeSyncUrl(window.location.href)
     console.log("fetching time from", timeSyncUrl)
 
-    fetch(timeSyncUrl, { cache: "no-store" }).then(r => {
-      const now = new Date()
+    fetch(timeSyncUrl, { cache: "no-store" })
+      .then(r => {
+        const now = new Date()
 
-      const dateHeader = r.headers.get("date")
-      if (dateHeader === null) {
-        throw new ObrError("Date header failure: Header is null")
-      }
+        const dateHeader = r.headers.get("date")
+        if (dateHeader === null) {
+          throw new ObrError("Date header failure: Header is null")
+        }
 
-      const serverTime = new Date(dateHeader)
-      if (isNaN(serverTime.getTime())) {
-        throw new ObrError(
-          `Date header failure: Unable to convert into Date: ${dateHeader}`,
+        const serverTime = new Date(dateHeader)
+        if (isNaN(serverTime.getTime())) {
+          throw new ObrError(
+            `Date header failure: Unable to convert into Date: ${dateHeader}`,
+          )
+        }
+
+        skew = serverTime.getTime() - now.getTime()
+
+        console.log(
+          `server time: ${serverTime}\nlocal time:  ${now}\nskew: ${skew}`,
         )
-      }
-
-      skew = serverTime.getTime() - now.getTime()
-
-      console.log(
-        `server time: ${serverTime}\nlocal time:  ${now}\nskew: ${skew}`,
-      )
-
-      callback()
-    })
+      })
+      .catch(error => {
+        console.warn("time sync failed, using local time", error)
+      })
+      .finally(callback)
   })
 }
