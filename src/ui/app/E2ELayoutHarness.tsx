@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  CardContent,
   CardHeader,
   Collapse,
   LinearProgress,
@@ -14,6 +15,8 @@ import {
 import { useMemo, useState } from "react"
 
 export function E2ELayoutHarness() {
+  const gmPlayerSpacerHeight = 200
+
   const tracks = useMemo(
     () => [
       { title: "Track One", url: "https://example.com/one.mp3" },
@@ -73,6 +76,12 @@ export function E2ELayoutHarness() {
                   },
                 }}
               />
+              <CardContent sx={{ paddingTop: 0 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="body2">00:23:17</Typography>
+                  <Typography variant="body2">00:51:51</Typography>
+                </Box>
+              </CardContent>
               {switchingToIndex !== undefined && (
                 <LinearProgress data-testid="player-switching" />
               )}
@@ -84,7 +93,7 @@ export function E2ELayoutHarness() {
       <Box sx={{ height: 48 }} />
       <Box sx={{ height: 80 }} />
       <Collapse in={isPlaying}>
-        <Box sx={{ height: 144 }} data-testid="player-spacer" />
+        <Box sx={{ height: gmPlayerSpacerHeight }} data-testid="player-spacer" />
       </Collapse>
 
       <List data-testid="track-list">

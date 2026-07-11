@@ -24,6 +24,8 @@ import { Player } from "../player"
 import { GMOnly, Role, useMessage, useRole, WithRole } from "../providers"
 
 export function App() {
+  const gmPlayerSpacerHeight = 200
+
   const currentMessage = useMessage()
 
   // role
@@ -137,7 +139,7 @@ export function App() {
           <Box sx={{ height: 48 }} />
           <Box sx={{ height: 80 }} />
           <Collapse in={currentMessage !== undefined}>
-            <Box sx={{ height: 144 }} />
+            <Box sx={{ height: gmPlayerSpacerHeight }} />
           </Collapse>
 
           <TrackDialog
