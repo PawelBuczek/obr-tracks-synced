@@ -4,6 +4,8 @@ import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 let metadataWriteQueue = Promise.resolve()
 
 export function updateMetadata(update: Metadata) {
+  console.trace("[metadata]", update)
+  
   metadataWriteQueue = metadataWriteQueue
     .catch(() => {})
     .then(async () => {

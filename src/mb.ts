@@ -222,6 +222,7 @@ export function resume() {
 }
 
 export function stop() {
+  console.log("[mb] stop() called")
    stopPlayback()
 
   updateMetadata({
