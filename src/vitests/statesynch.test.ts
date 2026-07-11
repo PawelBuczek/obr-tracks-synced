@@ -31,7 +31,7 @@ vi.mock("../metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
 }))
 
-import { Action, controlPath, onMessage, pause } from "../mb"
+import { Action, controlPath, onMessage, pause, stop } from "../mb"
 
 describe("message state synchronization", () => {
   beforeEach(() => {
@@ -73,7 +73,7 @@ it("clears current message after stop", async () => {
 
   mocks.getMetadata.mockResolvedValue({
     [controlPath]: {
-      id: "123",
+      id: "456",
       time: new Date().toISOString(),
       action: Action.Play,
       offset: 0,
