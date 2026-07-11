@@ -140,6 +140,60 @@ beforeEach(() => {
     )
   })
 
+  it("refreshes currently playing metadata when adding a track with the same url", async () => {
+    const originalTrack = {
+      title: "Original Track",
+      url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+      tags: ["old"],
+    }
+
+    const playingTrack = {
+      title: "Original Track",
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1",
+      tags: ["old"],
+    }
+
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [originalTrack],
+      [progressPath]: {
+        [playingTrack.url]: 33,
+      },
+      [controlPath]: {
+        id: "playing",
+        time: new Date().toISOString(),
+        action: 0,
+        offset: 0,
+        duration: 180,
+        track: playingTrack,
+      },
+    })
+
+    await addTrackToLibrary({
+      title: "Updated Track",
+      url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+      tags: ["updated", "focus"],
+    })
+
+    expect(mocks.updateMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [libraryPath]: [
+          {
+            title: "Updated Track",
+            url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+            tags: ["updated", "focus"],
+          },
+        ],
+        [controlPath]: expect.objectContaining({
+          track: {
+            title: "Updated Track",
+            url: playingTrack.url,
+            tags: ["updated", "focus"],
+          },
+        }),
+      }),
+    )
+  })
+
   it("rejects adding a track with a duplicate title", async () => {
     const existingTrack = {
       title: "Test Track",

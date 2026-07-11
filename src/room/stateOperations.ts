@@ -1,6 +1,6 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
 import { removeTrackProgress, TrackProgressMap } from "../domain/playback"
-import { Track } from "../domain/track"
+import { isSameTrack, Track } from "../domain/track"
 import { updateMetadata, updateMetadataWithCurrent } from "../infra/metadataHelper"
 import { ObrError } from "../shared/errors"
 import { checkTrack } from "../shared/utils"
@@ -65,6 +65,48 @@ export interface LibraryMutationOutcome {
   shouldStopPlayback: boolean
 }
 
+function sameTags(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((tag, index) => tag === right[index])
+}
+
+function getUpdatedControlTrack(
+  currentMessage: RoomControlMessage | undefined,
+  library: Track[],
+): RoomControlMessage | undefined {
+  if (!currentMessage) {
+    return undefined
+  }
+
+  const matchingTrack = library.find(track =>
+    isSameTrack(track, currentMessage.track),
+  )
+
+  if (!matchingTrack) {
+    return undefined
+  }
+
+  const shouldRefreshTrackDetails =
+    currentMessage.track.title !== matchingTrack.title ||
+    !sameTags(currentMessage.track.tags, matchingTrack.tags)
+
+  if (!shouldRefreshTrackDetails) {
+    return undefined
+  }
+
+  return {
+    ...currentMessage,
+    track: {
+      ...currentMessage.track,
+      title: matchingTrack.title,
+      tags: [...matchingTrack.tags],
+    },
+  }
+}
+
 function buildMergedLibrary(currentLibrary: Track[], tracks: Track[]): Track[] {
   const updatedLibrary = currentLibrary.map(track => ({
     ...track,
@@ -124,8 +166,12 @@ export async function mergeTracksIntoRoomLibrary(
     const currentLibrary = extractLibrary(current)
     const nextLibrary = buildMergedLibrary(currentLibrary, tracks)
     const progress = extractProgressMap(current)
+    const currentMessage = extractControlMessage(current)
+    const nextControl = getUpdatedControlTrack(currentMessage, nextLibrary)
 
-    const changed = JSON.stringify(nextLibrary) !== JSON.stringify(currentLibrary)
+    const libraryChanged =
+      JSON.stringify(nextLibrary) !== JSON.stringify(currentLibrary)
+    const changed = libraryChanged || nextControl !== undefined
 
     outcome = {
       changed,
@@ -139,7 +185,8 @@ export async function mergeTracksIntoRoomLibrary(
     }
 
     return {
-      [libraryPath]: nextLibrary,
+      ...(libraryChanged ? { [libraryPath]: nextLibrary } : {}),
+      ...(nextControl ? { [controlPath]: nextControl } : {}),
     }
   })
 
@@ -161,7 +208,7 @@ export async function deleteTrackFromRoomLibrary(
     const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
 
-    if (!currentLibrary.some(currentTrack => currentTrack.url === track.url)) {
+    if (!currentLibrary.some(currentTrack => isSameTrack(currentTrack, track))) {
       outcome = {
         changed: false,
         library: currentLibrary,
@@ -171,10 +218,13 @@ export async function deleteTrackFromRoomLibrary(
       return undefined
     }
 
-    const nextLibrary = currentLibrary.filter(currentTrack => currentTrack.url !== track.url)
-    const trackIsPlaying = currentMessage?.track.url === track.url
+    const nextLibrary = currentLibrary.filter(
+      currentTrack => !isSameTrack(currentTrack, track),
+    )
+    const trackIsPlaying =
+      currentMessage !== undefined && isSameTrack(currentMessage.track, track)
     const nextProgress = trackIsPlaying
-      ? removeTrackProgress(progress, track)
+      ? removeTrackProgress(progress, currentMessage.track)
       : progress
 
     outcome = {

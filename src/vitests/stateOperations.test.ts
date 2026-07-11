@@ -179,6 +179,54 @@ describe("room state operations", () => {
     expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
   })
 
+  it("refreshes currently playing control track title and tags when merging same-url track", async () => {
+    const playingTrack = {
+      title: "Old Title",
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1",
+      tags: ["old"],
+    }
+
+    mocks.metadata = {
+      [libraryPath]: [
+        {
+          title: "Old Title",
+          url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+          tags: ["old"],
+        },
+      ],
+      [progressPath]: {
+        [playingTrack.url]: 12,
+      },
+      [controlPath]: {
+        id: "m1",
+        time: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        action: Action.Play,
+        offset: 2,
+        duration: 200,
+        track: playingTrack,
+      },
+    }
+
+    const outcome = await mergeTracksIntoRoomLibrary([
+      {
+        title: "Updated Title",
+        url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+        tags: ["updated", "focus"],
+      },
+    ])
+
+    expect(outcome.changed).toBe(true)
+    expect(mocks.metadata[controlPath]).toEqual(
+      expect.objectContaining({
+        track: {
+          title: "Updated Title",
+          url: playingTrack.url,
+          tags: ["updated", "focus"],
+        },
+      }),
+    )
+  })
+
   it("no-ops delete when target track is already absent", async () => {
     mocks.metadata = {
       [libraryPath]: [],
@@ -192,10 +240,20 @@ describe("room state operations", () => {
   })
 
   it("deleting currently playing track clears control and removes progress", async () => {
+    const playingTrack = {
+      ...baseTrack,
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1",
+    }
+
+    const libraryTrack = {
+      ...baseTrack,
+      url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
+    }
+
     mocks.metadata = {
-      [libraryPath]: [baseTrack],
+      [libraryPath]: [libraryTrack],
       [progressPath]: {
-        [baseTrack.url]: 22,
+        [playingTrack.url]: 22,
       },
       [controlPath]: {
         id: "m1",
@@ -203,11 +261,11 @@ describe("room state operations", () => {
         action: Action.Play,
         offset: 2,
         duration: 200,
-        track: baseTrack,
+        track: playingTrack,
       },
     }
 
-    const outcome = await deleteTrackFromRoomLibrary(baseTrack)
+    const outcome = await deleteTrackFromRoomLibrary(libraryTrack)
 
     expect(outcome.changed).toBe(true)
     expect(outcome.shouldStopPlayback).toBe(true)
