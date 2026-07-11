@@ -10,12 +10,12 @@ import {
 } from "@mui/material"
 import Fuse from "fuse.js"
 import { useState } from "react"
+import { deleteTrackFromLibrary } from "../../library"
+import { pause, play, resume } from "../../mb"
+import { Track } from "../../track"
+import { getTrackListClickAction } from "../../trackListActions"
+import { useMessage } from "../providers/MessageProvider"
 import { ConfirmPayload } from "./Confirm"
-import { deleteTrackFromLibrary } from "../library"
-import { pause, play, resume } from "../mb"
-import { Track } from "../track"
-import { useMessage } from "./MessageProvider"
-import { getTrackListClickAction } from "../trackListActions"
 
 interface TrackCardProps {
   track: Track
@@ -40,10 +40,7 @@ function TrackCard(props: TrackCardProps) {
             mouseX: event.clientX + 2,
             mouseY: event.clientY - 6,
           }
-        : // repeated contextmenu when it is already open closes it with Chrome 84 on Ubuntu
-          // Other native context menus might behave different.
-          // With this behavior we prevent contextmenu from the backdrop to re-locale existing context menus.
-          null,
+        : null,
     )
   }
 

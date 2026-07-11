@@ -5,7 +5,7 @@ import {
   useEffect,
   useState,
 } from "react"
-import { Message, onMessage } from "../mb"
+import { Message, onMessage } from "../../mb"
 
 const Context = createContext<Message | undefined>(undefined)
 

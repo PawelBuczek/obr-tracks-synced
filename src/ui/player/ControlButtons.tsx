@@ -2,13 +2,13 @@ import PauseRoundedIcon from "@mui/icons-material/PauseRounded"
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded"
 import StopRoundedIcon from "@mui/icons-material/StopRounded"
 import { ButtonGroup, IconButton } from "@mui/material"
-import { useMessage } from "./MessageProvider"
-import { Action, pause, resume, stop } from "../mb"
+import { Action, pause, resume, stop } from "../../mb"
+import { useMessage } from "../providers/MessageProvider"
 
 export function ControlButtons() {
   const currentMessage = useMessage()
-  console.log("React currentMessage", currentMessage);
-  
+  console.log("React currentMessage", currentMessage)
+
   return (
     <ButtonGroup>
       <IconButton disabled={currentMessage === undefined} onClick={stop}>

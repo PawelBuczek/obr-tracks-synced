@@ -6,9 +6,9 @@ import {
   useTheme,
 } from "@mui/material"
 import { useEffect, useState } from "react"
-import { Action } from "../mb"
-import { getSeconds } from "../utils"
-import { useMessage } from "./MessageProvider"
+import { Action } from "../../mb"
+import { getSeconds } from "../../utils"
+import { useMessage } from "../providers/MessageProvider"
 
 function secondsToDisplay(seconds: number): string {
   return new Date(seconds * 1000).toISOString().substring(11, 19)
@@ -59,7 +59,7 @@ export function TrackProgress() {
       sx={{
         justifyContent: "space-between",
         alignItems: "center",
-        height: (theme) => theme.spacing(5),
+        height: theme => theme.spacing(5),
       }}
     >
       <TimeTypography seconds={progress} />

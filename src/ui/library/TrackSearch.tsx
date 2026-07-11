@@ -1,7 +1,7 @@
 import { TextField } from "@mui/material"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
-import { Track } from "../track"
+import { Track } from "../../track"
 
 interface Props {
   trackLibrary: Track[]

@@ -10,9 +10,9 @@ import {
   TextField,
 } from "@mui/material"
 import { useEffect, useReducer } from "react"
-import { addTrackToLibrary } from "../library"
-import { Track, emptyTrack } from "../track"
-import { checkTitle, checkTrack, checkUrl } from "../utils"
+import { addTrackToLibrary } from "../../library"
+import { Track, emptyTrack } from "../../track"
+import { checkTitle, checkTrack, checkUrl } from "../../utils"
 
 interface Props {
   onClose: () => void
@@ -189,7 +189,7 @@ export function TrackDialog(props: Props) {
                 />
               ))
             }
-            renderInput={(params) => (
+            renderInput={params => (
               <TextField {...params} variant="standard" label="Tags" />
             )}
           />

@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader } from "@mui/material"
 import { Audio } from "./Audio"
 import { ControlButtons } from "./ControlButtons"
-import { useMessage } from "./MessageProvider"
-import { GMOnly } from "./RoleProvider"
+import { useMessage } from "../providers/MessageProvider"
+import { GMOnly } from "../providers/RoleProvider"
 
 interface Props {
   ready: boolean

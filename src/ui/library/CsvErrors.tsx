@@ -15,7 +15,7 @@ import {
   TableRow,
   useTheme,
 } from "@mui/material"
-import { CsvError } from "../csv"
+import { CsvError } from "../../csv"
 
 interface Props {
   errors: CsvError[]
