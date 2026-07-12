@@ -79,7 +79,7 @@ export function Audio(props: AudioProps) {
         ref.current.paused || ref.current.pause()
         break
     }
-  }, [ready, currentMessage, volume])
+  }, [ready, currentMessage, mute, volume])
 
   return (
     <>
