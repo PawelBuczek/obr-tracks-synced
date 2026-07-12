@@ -14,12 +14,12 @@ export function Player(props: Props) {
   const currentMessage = useMessage()
   return (
     <Card
-      sx={{ minWidth: "100%", marginBottom: 0.5, marginTop: 0.5 }}
+      sx={{ minWidth: "100%", marginBottom: 1, marginTop: 0.5 }}
       variant="elevation"
       raised
     >
       <CardHeader
-        sx={{ px: 2, py: 1 }}
+        sx={{ px: 2, py: 2 }}
         subheader={currentMessage?.track.title}
         subheaderTypographyProps={{
           noWrap: true,
