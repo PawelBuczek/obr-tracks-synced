@@ -12,7 +12,6 @@ export function ControlButtons() {
   const currentMessage = useMessage()
   const { optimisticPause, optimisticResume, optimisticStop } =
     useMessageOptimisticActions()
-  console.log("React currentMessage", currentMessage)
 
   return (
     <ButtonGroup>

@@ -1,5 +1,4 @@
 import OBR, { Metadata } from "@owlbear-rodeo/sdk"
-import { logEvent } from "firebase/analytics"
 import { v4 as uuidv4 } from "uuid"
 import { Action, getPlaybackOffset, prepareTrackSelection, resetTrackProgress, TrackProgressMap } from "../domain/playback"
 import { Track } from "../domain/track"
@@ -134,20 +133,16 @@ export function onMessage(
         message.time = n
       }
 
-      logEvent(analytics, "message_received", { action: message?.action })
       currentMessage = message
-      console.log(`now: ${n}\ntracks message: `, message)
       callback(currentMessage)
     }
   }
 
   OBR.room.getMetadata().then(handler)
-  console.log("[mb] onMessage() registered and callingOnMetadataChange")
   return OBR.room.onMetadataChange(handler)
 }
 
 export function play(track: Track) {
-  logEvent(analytics, "play")
 
   // validate the track
   const { fixed, validation } = checkTrack(track)
@@ -186,9 +181,6 @@ export function play(track: Track) {
 }
 
 export function pause() {
-  console.log("mb currentMessage", currentMessage)
-
-  logEvent(analytics, "pause")
   if (!currentMessage) {
     throw new ObrError("Unable to pause before receiving first message")
   }
@@ -205,7 +197,6 @@ export function pause() {
 }
 
 export function resume() {
-  logEvent(analytics, "resume")
   if (!currentMessage) {
     throw new ObrError("Unable to resume before receiving first message")
   }
@@ -217,14 +208,12 @@ export function resume() {
 }
 
 export function stop() {
-  console.log("[mb] stop() called")
   stopPlayback()
 
   clearControlAndWriteProgress(currentProgress)
 }
 
 export function stopPlayback() {
-  logEvent(analytics, "stop")
 
   if (currentMessage) {
     currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
@@ -233,8 +222,6 @@ export function stopPlayback() {
 
 export async function seekToOffset(offsetSeconds: number) {
   await ensureGmCanSeek()
-
-  logEvent(analytics, "seek", { offset: offsetSeconds })
 
   if (!currentMessage) {
     throw new ObrError("Unable to seek before receiving first message")

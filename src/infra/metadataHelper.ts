@@ -26,7 +26,6 @@ export function updateMetadataWithCurrent(
 }
 
 export function updateMetadata(update: Metadata) {
-  console.trace("[metadata]", update)
 
   return updateMetadataWithCurrent(() => update)
 }

@@ -1,8 +1,6 @@
 import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { EventEmitter } from "events"
-import { logEvent } from "firebase/analytics"
 import { Track } from "../domain/track"
-import { analytics } from "../infra/firebase"
 import { checkTrack } from "../shared/utils"
 import { stopPlayback } from "./mb"
 import {
@@ -57,7 +55,6 @@ function runWhenRoomReady(): Promise<void> {
 }
 
 function readMetadata(metadata: Metadata) {
-  console.log("[library] readMetadata", metadata)
   const library = extractLibrary(metadata)
   const orderMap = extractLibraryOrderMap(metadata)
   cachedSortMode = extractLibrarySortMode(metadata)
@@ -78,13 +75,10 @@ function updateCacheFromOperationResult(library: Track[]) {
 }
 
 async function setLibrary(tracks: Track[]) {
-  console.trace("[library] setLibrary", tracks)
 
   cachedLibrary = [...tracks]
 
   await runWhenRoomReady()
-
-  console.log("[library] writing library metadata")
 
   await writeLibrary(cachedLibrary)
 
@@ -92,7 +86,6 @@ async function setLibrary(tracks: Track[]) {
 }
 
 function getStoredLibrary(): Track[] {
-  console.log("[library] getStoredLibrary()", cachedLibrary)
   return cachedLibrary
 }
 
@@ -103,10 +96,7 @@ function initializeRoomSync(): Promise<void> {
 
   roomSyncPromise = new Promise(resolve => {
     runWhenRoomReady().then(() => {
-      console.log("[library] room ready, loading metadata")
-
       OBR.room.onMetadataChange(metadata => {
-        console.trace("[library] onMetadataChange", metadata)
 
         readMetadata(metadata)
         push()
@@ -114,8 +104,6 @@ function initializeRoomSync(): Promise<void> {
       })
 
       OBR.room.getMetadata().then(metadata => {
-        console.log("[library] getMetadata in room creation()", metadata)
-
         readMetadata(metadata)
         push()
         pushSortMode()
@@ -131,7 +119,6 @@ function initializeRoomSync(): Promise<void> {
 const roomSyncReady = initializeRoomSync()
 
 export function addTrackToLibrary(track: Track) {
-  logEvent(analytics, "add_track")
 
   return roomSyncReady.then(async () => {
     await mergeLibrary([track])
@@ -139,7 +126,6 @@ export function addTrackToLibrary(track: Track) {
 }
 
 export function deleteTrackFromLibrary(track: Track) {
-  logEvent(analytics, "delete_track")
 
   return roomSyncReady.then(async () => {
     const outcome = await deleteTrackFromRoomLibrary(track)
@@ -156,7 +142,6 @@ export function deleteTrackFromLibrary(track: Track) {
 }
 
 export async function mergeLibrary(tracks: Track[]) {
-  console.trace("[library] mergeLibrary", tracks)
 
   try {
     const outcome = await mergeTracksIntoRoomLibrary(tracks)
@@ -182,8 +167,6 @@ export function getLibrarySortMode(): LibrarySortMode {
 
 export function clearLibrary() {
   console.trace("[library] clearLibrary")
-
-  logEvent(analytics, "clear_tracks")
 
   return roomSyncReady.then(async () => {
     const outcome = await clearRoomLibrary()
@@ -259,7 +242,6 @@ export function onLibraryChange(
 }
 
 export function cleanLibrary() {
-  console.trace("[library] cleanLibrary")
 
   return roomSyncReady.then(async () => {
     await refreshMetadataFromRoom()
