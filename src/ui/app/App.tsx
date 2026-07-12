@@ -19,7 +19,7 @@ import {
 } from "../../room/library"
 import { LibrarySortMode } from "../../room/metadataSchema"
 import { Track } from "../../domain/track"
-import { getMute, setMute as persistMute } from "../../shared/mute"
+import { setMute as persistMute } from "../../shared/mute"
 import { getVolume, setVolume as persistVolume } from "../../shared/volume"
 import { ActionPopover, MuteButton, VolumeSlider } from "../controls"
 import {
@@ -96,7 +96,7 @@ export function App() {
   // audio state
   const [ready, setReady] = useState(false)
   const [volume, setVolume] = useState(() => getVolume())
-  const [mute, setMute] = useState(() => getMute())
+  const [mute, setMute] = useState(true)
   const playerProps = { ready, volume, mute }
 
   useEffect(() => {

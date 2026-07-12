@@ -165,15 +165,15 @@ describe("App player visibility", () => {
     expect(screen.queryByText("Track Two")).toBeNull()
   })
 
-  it("initializes audio controls from persisted settings to avoid rejoin flicker", () => {
+  it("always starts muted after load while still restoring volume", () => {
     localStorage.setItem(key("mute"), "false")
     localStorage.setItem(key("volume"), "0.6")
 
     render(<App />)
 
-    expect(controlsState.lastMuteProps?.mute).toBe(false)
+    expect(controlsState.lastMuteProps?.mute).toBe(true)
     expect(controlsState.lastVolumeProps?.volume).toBe(0.6)
-    expect(controlsState.lastVolumeProps?.disabled).toBe(false)
+    expect(controlsState.lastVolumeProps?.disabled).toBe(true)
   })
 
   it("auto-enables ready when playback message already exists after refresh", async () => {
