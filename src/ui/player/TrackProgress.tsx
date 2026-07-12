@@ -34,8 +34,7 @@ export function TrackProgress() {
   const role = useRole()
   const canSeek = role === Role.GM
   const [progress, setProgress] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragValue, setDragValue] = useState(0)
+  const [dragValue, setDragValue] = useState<number | undefined>(undefined)
   const [optimisticSeek, setOptimisticSeek] = useState<
     { seconds: number; expiresAt: number } | undefined
   >(undefined)
@@ -115,7 +114,7 @@ export function TrackProgress() {
     value: number | number[],
   ) => {
     if (!canSeek) {
-      setIsDragging(false)
+      setDragValue(undefined)
       return
     }
 
@@ -127,30 +126,22 @@ export function TrackProgress() {
         seconds,
         expiresAt: Date.now() + optimisticSeekWindowMs,
       })
+      setDragValue(undefined)
 
       void seekToOffset(seconds).catch(error => {
         console.error("Failed to seek:", error)
       })
-
-      setIsDragging(false)
-    }
-  }
-
-  const handleSliderMouseDown = () => {
-    if (!canSeek) {
       return
     }
 
-    setIsDragging(true)
+    setDragValue(undefined)
   }
 
   if (!currentMessage) {
     return <Skeleton variant="rounded" animation="wave" height={5} />
   }
 
-  const displayedProgress = isDragging
-    ? dragValue
-    : optimisticSeek?.seconds ?? progress
+  const displayedProgress = dragValue ?? optimisticSeek?.seconds ?? progress
   const sliderValue =
     currentMessage.duration > 0
       ? (displayedProgress / currentMessage.duration) * 100
@@ -171,8 +162,6 @@ export function TrackProgress() {
         value={sliderValue}
         onChange={handleSliderChange}
         onChangeCommitted={handleSliderChangeCommitted}
-        onMouseDown={handleSliderMouseDown}
-        onTouchStart={handleSliderMouseDown}
         disabled={!canSeek}
         min={0}
         max={100}

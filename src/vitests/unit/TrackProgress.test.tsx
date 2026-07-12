@@ -36,6 +36,7 @@ describe("TrackProgress UI", () => {
     vi.clearAllMocks()
     const mockUseRole = useRole as ReturnType<typeof vi.fn>
     mockUseRole.mockReturnValue(Role.GM)
+    mocks.seekToOffset.mockResolvedValue(undefined)
   })
 
   it("renders skeleton when no message is playing", () => {
