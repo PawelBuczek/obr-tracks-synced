@@ -11,6 +11,8 @@ import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
 import { onLibraryChange } from "../../room/library"
 import { Track } from "../../domain/track"
+import { getMute, setMute as persistMute } from "../../shared/mute"
+import { getVolume, setVolume as persistVolume } from "../../shared/volume"
 import { ActionPopover, MuteButton, VolumeSlider } from "../controls"
 import {
   Confirm,
@@ -65,9 +67,17 @@ export function App() {
 
   // audio state
   const [ready, setReady] = useState(false)
-  const [volume, setVolume] = useState(0)
-  const [mute, setMute] = useState(true)
+  const [volume, setVolume] = useState(() => getVolume())
+  const [mute, setMute] = useState(() => getMute())
   const playerProps = { ready, volume, mute }
+
+  useEffect(() => {
+    persistVolume(volume)
+  }, [volume])
+
+  useEffect(() => {
+    persistMute(mute)
+  }, [mute])
 
   // unmute reminder
   useEffect(() => {
@@ -101,8 +111,8 @@ export function App() {
             </Typography>
 
             <Stack spacing={0} direction="row" sx={{ alignItems: "center", flex: 9 }}>
-              <VolumeSlider onVolume={setVolume} disabled={mute} />
-              <MuteButton onMute={setMute} />
+              <VolumeSlider volume={volume} onVolume={setVolume} disabled={mute} />
+              <MuteButton mute={mute} onMute={setMute} />
             </Stack>
           </Toolbar>
 

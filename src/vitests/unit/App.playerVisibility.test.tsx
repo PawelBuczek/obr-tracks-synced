@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { Action } from "../../room/mb"
+import { key } from "../../shared/key"
 import { App } from "../../ui/app/App"
 
 const fixture = vi.hoisted(() => ({
@@ -23,6 +24,15 @@ const roleState = vi.hoisted(() => ({
   currentRole: 0,
 }))
 
+const controlsState = vi.hoisted(() => ({
+  lastMuteProps: undefined as
+    | { mute: boolean; onMute: (mute: boolean) => void }
+    | undefined,
+  lastVolumeProps: undefined as
+    | { volume: number; onVolume: (volume: number) => void; disabled: boolean }
+    | undefined,
+}))
+
 vi.mock("../../room/library", () => ({
   onLibraryChange: vi.fn((setLibrary: (tracks: typeof fixture.tracks) => void) => {
     setLibrary(fixture.tracks)
@@ -32,8 +42,18 @@ vi.mock("../../room/library", () => ({
 
 vi.mock("../../ui/controls", () => ({
   ActionPopover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  MuteButton: () => null,
-  VolumeSlider: () => null,
+  MuteButton: (props: { mute: boolean; onMute: (mute: boolean) => void }) => {
+    controlsState.lastMuteProps = props
+    return null
+  },
+  VolumeSlider: (props: {
+    volume: number
+    onVolume: (volume: number) => void
+    disabled: boolean
+  }) => {
+    controlsState.lastVolumeProps = props
+    return null
+  },
 }))
 
 vi.mock("../../ui/player", () => ({
@@ -93,7 +113,10 @@ import { Role, useMessage } from "../../ui/providers"
 describe("App player visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     roleState.currentRole = Role.GM
+    controlsState.lastMuteProps = undefined
+    controlsState.lastVolumeProps = undefined
   })
 
   it("shows the player and keeps both library tracks rendered when playback starts", () => {
@@ -125,5 +148,16 @@ describe("App player visibility", () => {
     expect(screen.queryByTestId("gm-icon-menu")).toBeNull()
     expect(screen.queryByText("Track One")).toBeNull()
     expect(screen.queryByText("Track Two")).toBeNull()
+  })
+
+  it("initializes audio controls from persisted settings to avoid rejoin flicker", () => {
+    localStorage.setItem(key("mute"), "false")
+    localStorage.setItem(key("volume"), "0.6")
+
+    render(<App />)
+
+    expect(controlsState.lastMuteProps?.mute).toBe(false)
+    expect(controlsState.lastVolumeProps?.volume).toBe(0.6)
+    expect(controlsState.lastVolumeProps?.disabled).toBe(false)
   })
 })

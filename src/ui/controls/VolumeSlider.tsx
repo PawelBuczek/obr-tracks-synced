@@ -1,29 +1,20 @@
 import { Slider } from "@mui/material"
-import { useEffect, useState } from "react"
-import { getVolume, setVolume } from "../../shared/volume"
 
 interface Props {
+  volume: number
   onVolume: (volume: number) => void
   disabled: boolean
 }
 
 export function VolumeSlider(props: Props) {
-  const { onVolume, disabled } = props
-  const [value, setValue] = useState(getVolume() * 100)
-
-  useEffect(() => {
-    onVolume(getVolume())
-  }, [])
+  const { volume, onVolume, disabled } = props
 
   return (
     <Slider
       disabled={disabled}
-      value={value}
+      value={volume * 100}
       onChange={(_, v) => {
-        setValue(v as number)
-        const volume = (v as number) / 100
-        onVolume(volume)
-        setVolume(volume)
+        onVolume((v as number) / 100)
       }}
     />
   )

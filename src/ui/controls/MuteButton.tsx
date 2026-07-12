@@ -1,26 +1,18 @@
 import { VolumeOffRounded, VolumeUpRounded } from "@mui/icons-material"
 import { IconButton } from "@mui/material"
-import { useEffect, useState } from "react"
-import { getMute, setMute as persistMute } from "../../shared/mute"
 
 interface Props {
+  mute: boolean
   onMute: (mute: boolean) => void
 }
 
 export function MuteButton(props: Props) {
-  const { onMute } = props
-
-  const [mute, setMute] = useState(getMute())
-
-  useEffect(() => {
-    onMute(mute)
-    persistMute(mute)
-  }, [mute])
+  const { mute, onMute } = props
 
   return (
     <IconButton
       onClick={() => {
-        setMute(m => !m)
+        onMute(!mute)
       }}
     >
       {mute ? (
