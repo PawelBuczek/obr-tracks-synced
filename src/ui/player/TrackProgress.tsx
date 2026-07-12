@@ -50,8 +50,8 @@ export function TrackProgress() {
         return
       }
 
-      // on play, update progress every second
-      const id = setInterval(() => {
+      // on play, sync immediately and then keep updating every second
+      const updateProgress = () => {
         setProgress(
           getPlaybackTime(
             currentMessage.offset,
@@ -59,6 +59,13 @@ export function TrackProgress() {
             currentMessage.duration,
           ),
         )
+      }
+
+      updateProgress()
+
+      // on play, update progress every second
+      const id = setInterval(() => {
+        updateProgress()
       }, 1000)
       return () => clearInterval(id)
     }

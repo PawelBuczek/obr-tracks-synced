@@ -81,6 +81,53 @@ describe("TrackProgress freeze regression", () => {
     mocks.useRole.mockReturnValue(Role.GM)
   })
 
+  it("shows the new track progress immediately after a track switch", () => {
+    vi.useFakeTimers()
+    const baseTime = new Date("2026-01-01T00:00:00Z")
+    vi.setSystemTime(baseTime)
+
+    let message: Message = {
+      id: "msg-b-paused",
+      time: baseTime,
+      action: Action.Pause,
+      offset: 30 * 60,
+      duration: 40 * 60,
+      track: {
+        title: "Track B",
+        url: "https://example.com/b.mp3",
+        tags: [],
+      },
+    }
+
+    mocks.useMessage.mockImplementation(() => message)
+
+    const { rerender } = render(<TrackProgress />)
+    expect(screen.getByText("00:30:00")).toBeDefined()
+    expect(screen.getByText("00:40:00")).toBeDefined()
+
+    message = {
+      id: "msg-a-play",
+      time: baseTime,
+      action: Action.Play,
+      offset: 5 * 60,
+      duration: 20 * 60,
+      track: {
+        title: "Track A",
+        url: "https://example.com/a.mp3",
+        tags: [],
+      },
+    }
+
+    rerender(<TrackProgress />)
+
+    // Regression guard: the old track's progress must not flash on the new track.
+    expect(screen.getByText("00:05:00")).toBeDefined()
+    expect(screen.getByText("00:20:00")).toBeDefined()
+    expect(screen.queryByText("00:30:00")).toBeNull()
+
+    vi.useRealTimers()
+  })
+
   it("keeps current synced position when second grab starts without movement", () => {
     vi.useFakeTimers()
 
