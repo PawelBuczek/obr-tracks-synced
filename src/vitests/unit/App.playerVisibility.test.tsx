@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import { Action } from "../../room/mb"
 import { key } from "../../shared/key"
 import { App } from "../../ui/app/App"
@@ -30,6 +30,9 @@ const controlsState = vi.hoisted(() => ({
     | undefined,
   lastVolumeProps: undefined as
     | { volume: number; onVolume: (volume: number) => void; disabled: boolean }
+    | undefined,
+  lastPlayerProps: undefined as
+    | { ready: boolean; volume: number; mute: boolean }
     | undefined,
 }))
 
@@ -65,7 +68,10 @@ vi.mock("../../ui/controls", () => ({
 }))
 
 vi.mock("../../ui/player", () => ({
-  Player: () => <div data-testid="player">Player</div>,
+  Player: (props: { ready: boolean; volume: number; mute: boolean }) => {
+    controlsState.lastPlayerProps = props
+    return <div data-testid="player">Player</div>
+  },
 }))
 
 vi.mock("../../ui/library", () => ({
@@ -125,6 +131,7 @@ describe("App player visibility", () => {
     roleState.currentRole = Role.GM
     controlsState.lastMuteProps = undefined
     controlsState.lastVolumeProps = undefined
+    controlsState.lastPlayerProps = undefined
   })
 
   it("shows the player and keeps both library tracks rendered when playback starts", () => {
@@ -167,5 +174,23 @@ describe("App player visibility", () => {
     expect(controlsState.lastMuteProps?.mute).toBe(false)
     expect(controlsState.lastVolumeProps?.volume).toBe(0.6)
     expect(controlsState.lastVolumeProps?.disabled).toBe(false)
+  })
+
+  it("auto-enables ready when playback message already exists after refresh", async () => {
+    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
+    mockUseMessage.mockReturnValue({
+      id: "resume-on-refresh",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Play,
+      offset: 10,
+      duration: 120,
+      track: fixture.tracks[0],
+    })
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(controlsState.lastPlayerProps?.ready).toBe(true)
+    })
   })
 })

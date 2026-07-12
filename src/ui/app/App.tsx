@@ -100,6 +100,12 @@ export function App() {
   const playerProps = { ready, volume, mute }
 
   useEffect(() => {
+    if (!ready && currentMessage !== undefined) {
+      setReady(true)
+    }
+  }, [ready, currentMessage])
+
+  useEffect(() => {
     persistVolume(volume)
   }, [volume])
 
