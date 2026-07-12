@@ -24,7 +24,7 @@ import { Player } from "../player"
 import { GMOnly, Role, useMessage, useRole, WithRole } from "../providers"
 
 export function App() {
-  const gmPlayerSpacerHeight = 200
+  const gmPlayerSpacerHeight = 180
 
   const currentMessage = useMessage()
 

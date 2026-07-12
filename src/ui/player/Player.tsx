@@ -14,11 +14,12 @@ export function Player(props: Props) {
   const currentMessage = useMessage()
   return (
     <Card
-      sx={{ minWidth: "100%", marginBottom: 2, marginTop: 1 }}
+      sx={{ minWidth: "100%", marginBottom: 0.5, marginTop: 0.5 }}
       variant="elevation"
       raised
     >
       <CardHeader
+        sx={{ px: 2, py: 1 }}
         subheader={currentMessage?.track.title}
         subheaderTypographyProps={{
           noWrap: true,
@@ -31,7 +32,7 @@ export function Player(props: Props) {
           </GMOnly>
         }
       />
-      <CardContent>
+      <CardContent sx={{ px: 2, pt: 0.5, pb: "8px !important" }}>
         <Audio {...props} />
       </CardContent>
     </Card>

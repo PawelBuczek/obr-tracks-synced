@@ -158,12 +158,12 @@ export function TrackProgress() {
 
   return (
     <Stack
-      spacing={2}
+      spacing={1}
       direction="row"
       sx={{
         justifyContent: "space-between",
         alignItems: "center",
-        height: theme => theme.spacing(5),
+        py: 0.25,
       }}
     >
       <TimeTypography seconds={displayedProgress} />

@@ -15,7 +15,7 @@ import {
 import { useMemo, useState } from "react"
 
 export function E2ELayoutHarness() {
-  const gmPlayerSpacerHeight = 200
+  const gmPlayerSpacerHeight = 180
 
   const tracks = useMemo(
     () => [
@@ -67,8 +67,12 @@ export function E2ELayoutHarness() {
 
         <Collapse in={isPlaying}>
           <Toolbar variant="dense">
-            <Card data-testid="player" sx={{ minWidth: "100%", marginBottom: 2, marginTop: 1 }}>
+            <Card
+              data-testid="player"
+              sx={{ minWidth: "100%", marginBottom: 0.5, marginTop: 0.5 }}
+            >
               <CardHeader
+                sx={{ px: 2, py: 1 }}
                 subheader={tracks[activeTrackIndex].title}
                 slotProps={{
                   subheader: {
@@ -76,7 +80,7 @@ export function E2ELayoutHarness() {
                   },
                 }}
               />
-              <CardContent sx={{ paddingTop: 0 }}>
+              <CardContent sx={{ px: 2, pt: 0.5, pb: "8px !important" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="body2">00:23:17</Typography>
                   <Typography variant="body2">00:51:51</Typography>
