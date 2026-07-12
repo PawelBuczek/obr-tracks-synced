@@ -65,4 +65,4 @@ This project is configured to deploy the static build to GitHub Pages via GitHub
 
 ## Contribute
 
-Sure! But reach out to me on [discord](https://discord.gg/u5RYMkV98s) if you are thinking about large changes.
+Sure! However please be concious of the limitation of owlbear rodeo metadata. It is limited to 16 KB per room. That's very little. Efforts to make our use of this metadata more efficient are... ongoing.
