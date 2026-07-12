@@ -6,6 +6,7 @@ import {
   useTheme,
 } from "@mui/material"
 import { SyntheticEvent, useEffect, useState } from "react"
+import { Track, isSameTrack } from "../../domain/track"
 import { Action, seekToOffset } from "../../room/mb"
 import { getPlaybackTime, getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
@@ -36,7 +37,7 @@ export function TrackProgress() {
   const [progress, setProgress] = useState(0)
   const [dragValue, setDragValue] = useState<number | undefined>(undefined)
   const [optimisticSeek, setOptimisticSeek] = useState<
-    { seconds: number; expiresAt: number } | undefined
+    { seconds: number; expiresAt: number; track: Track } | undefined
   >(undefined)
 
   useEffect(() => {
@@ -83,6 +84,11 @@ export function TrackProgress() {
       return
     }
 
+    if (!isSameTrack(currentMessage.track, optimisticSeek.track)) {
+      setOptimisticSeek(undefined)
+      return
+    }
+
     const syncedProgress =
       currentMessage.action === Action.Pause
         ? getPlaybackTime(currentMessage.offset, 0, currentMessage.duration)
@@ -125,6 +131,7 @@ export function TrackProgress() {
       setOptimisticSeek({
         seconds,
         expiresAt: Date.now() + optimisticSeekWindowMs,
+        track: currentMessage.track,
       })
       setDragValue(undefined)
 

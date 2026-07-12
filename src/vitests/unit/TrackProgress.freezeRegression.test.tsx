@@ -130,4 +130,62 @@ describe("TrackProgress freeze regression", () => {
 
     vi.useRealTimers()
   })
+
+  it("does not leak optimistic seek offsets across three track switches", () => {
+    let message: Message = {
+      id: "msg-a",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Pause,
+      offset: 10,
+      duration: 100,
+      track: {
+        title: "Track A",
+        url: "https://example.com/a.mp3",
+        tags: [],
+      },
+    }
+
+    mocks.useMessage.mockImplementation(() => message)
+
+    const { rerender } = render(<TrackProgress />)
+    expect(screen.getByText("00:00:10")).toBeDefined()
+
+    fireEvent.click(screen.getByTestId("change-30"))
+    fireEvent.click(screen.getByTestId("commit-30"))
+    expect(screen.getByText("00:00:30")).toBeDefined()
+
+    message = {
+      ...message,
+      id: "msg-b",
+      offset: 50,
+      track: {
+        title: "Track B",
+        url: "https://example.com/b.mp3",
+        tags: [],
+      },
+    }
+    rerender(<TrackProgress />)
+
+    expect(screen.getByText("00:00:50")).toBeDefined()
+    expect(screen.queryByText("00:00:30")).toBeNull()
+
+    fireEvent.click(screen.getByTestId("commit-60"))
+    expect(screen.getByText("00:01:00")).toBeDefined()
+
+    message = {
+      ...message,
+      id: "msg-c",
+      offset: 20,
+      track: {
+        title: "Track C",
+        url: "https://example.com/c.mp3",
+        tags: [],
+      },
+    }
+    rerender(<TrackProgress />)
+
+    expect(screen.getByText("00:00:20")).toBeDefined()
+    expect(screen.queryByText("00:01:00")).toBeNull()
+    expect(screen.queryByText("00:00:30")).toBeNull()
+  })
 })
