@@ -9,6 +9,7 @@ import { SyntheticEvent, useEffect, useState } from "react"
 import { Action, seekToOffset } from "../../room/mb"
 import { getPlaybackTime, getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
+import { Role, useRole } from "../providers/RoleProvider"
 
 function secondsToDisplay(seconds: number): string {
   // Safety check for invalid values
@@ -30,6 +31,8 @@ function TimeTypography(props: { seconds: number }) {
 export function TrackProgress() {
   const optimisticSeekWindowMs = 2000
   const currentMessage = useMessage()
+  const role = useRole()
+  const canSeek = role === Role.GM
   const [progress, setProgress] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [dragValue, setDragValue] = useState(0)
@@ -96,6 +99,10 @@ export function TrackProgress() {
   }, [currentMessage, optimisticSeek])
 
   const handleSliderChange = (_event: Event, value: number | number[]) => {
+    if (!canSeek) {
+      return
+    }
+
     if (typeof value === "number" && currentMessage) {
       // Convert percentage (0-100) to seconds
       const seconds = (value / 100) * currentMessage.duration
@@ -107,24 +114,33 @@ export function TrackProgress() {
     _event: Event | SyntheticEvent,
     value: number | number[],
   ) => {
+    if (!canSeek) {
+      setIsDragging(false)
+      return
+    }
+
     if (typeof value === "number" && currentMessage) {
-      try {
-        // Convert percentage (0-100) to seconds
-        const seconds = (value / 100) * currentMessage.duration
-        setProgress(seconds)
-        setOptimisticSeek({
-          seconds,
-          expiresAt: Date.now() + optimisticSeekWindowMs,
-        })
-        seekToOffset(seconds)
-      } catch (error) {
+      // Convert percentage (0-100) to seconds
+      const seconds = (value / 100) * currentMessage.duration
+      setProgress(seconds)
+      setOptimisticSeek({
+        seconds,
+        expiresAt: Date.now() + optimisticSeekWindowMs,
+      })
+
+      void seekToOffset(seconds).catch(error => {
         console.error("Failed to seek:", error)
-      }
+      })
+
       setIsDragging(false)
     }
   }
 
   const handleSliderMouseDown = () => {
+    if (!canSeek) {
+      return
+    }
+
     setIsDragging(true)
   }
 
@@ -157,6 +173,7 @@ export function TrackProgress() {
         onChangeCommitted={handleSliderChangeCommitted}
         onMouseDown={handleSliderMouseDown}
         onTouchStart={handleSliderMouseDown}
+        disabled={!canSeek}
         min={0}
         max={100}
         step={0.1}

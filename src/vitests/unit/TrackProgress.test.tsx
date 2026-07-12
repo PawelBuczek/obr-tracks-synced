@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { TrackProgress } from "../../ui/player/TrackProgress"
 import { Action } from "../../room/mb"
 
 const mocks = vi.hoisted(() => ({
   seekToOffset: vi.fn(),
+  useRole: vi.fn(),
 }))
 
 vi.mock("../../room/mb", async () => {
@@ -19,11 +20,22 @@ vi.mock("../../ui/providers/MessageProvider", () => ({
   useMessage: vi.fn(() => undefined),
 }))
 
+vi.mock("../../ui/providers/RoleProvider", () => ({
+  Role: {
+    GM: 0,
+    Player: 1,
+  },
+  useRole: mocks.useRole,
+}))
+
 import { useMessage } from "../../ui/providers/MessageProvider"
+import { Role, useRole } from "../../ui/providers/RoleProvider"
 
 describe("TrackProgress UI", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    const mockUseRole = useRole as ReturnType<typeof vi.fn>
+    mockUseRole.mockReturnValue(Role.GM)
   })
 
   it("renders skeleton when no message is playing", () => {
@@ -176,5 +188,35 @@ describe("TrackProgress UI", () => {
     // Should render without errors
     const slider = document.querySelector('input[type="range"]')
     expect(slider).toBeDefined()
+  })
+
+  it("disables seeking for players", () => {
+    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
+    mockUseMessage.mockReturnValue({
+      id: "test-player-role",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Play,
+      offset: 0,
+      duration: 200,
+      track: {
+        title: "Locked Track",
+        url: "https://example.com/locked.mp3",
+        tags: [],
+      },
+    })
+
+    const mockUseRole = useRole as ReturnType<typeof vi.fn>
+    mockUseRole.mockReturnValue(Role.Player)
+
+    render(<TrackProgress />)
+
+    const slider = document.querySelector('input[type="range"]') as HTMLInputElement
+    expect(slider).toBeDefined()
+    expect(slider.disabled).toBe(true)
+
+    fireEvent.change(slider, { target: { value: "50" } })
+    fireEvent.mouseUp(slider)
+
+    expect(mocks.seekToOffset).not.toHaveBeenCalled()
   })
 })

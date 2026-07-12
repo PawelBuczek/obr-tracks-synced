@@ -104,6 +104,13 @@ function getCurrentOffset(message: Message) {
   return getPlaybackOffset(message.offset, message.time, now())
 }
 
+async function ensureGmCanSeek() {
+  const role = await OBR.player.getRole()
+  if (role !== "GM") {
+    throw new ObrError("Only the GM can change track progress")
+  }
+}
+
 export function onMessage(
   callback: (message: Message | undefined) => void,
 ): () => void {
@@ -219,7 +226,9 @@ export function stopPlayback() {
   }
 }
 
-export function seekToOffset(offsetSeconds: number) {
+export async function seekToOffset(offsetSeconds: number) {
+  await ensureGmCanSeek()
+
   logEvent(analytics, "seek", { offset: offsetSeconds })
 
   if (!currentMessage) {
