@@ -65,6 +65,9 @@ export function Audio(props: AudioProps) {
       return
     }
 
+    // fix for startup audio sync
+    ref.current.volume = volume
+
     if (!currentMessage) {
       ref.current.pause()
       ref.current.currentTime = 0
@@ -92,7 +95,7 @@ export function Audio(props: AudioProps) {
         ref.current.paused || ref.current.pause()
         break
     }
-  }, [ready, currentMessage])
+  }, [ready, currentMessage, volume])
 
   return (
     <>
