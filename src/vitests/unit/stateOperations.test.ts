@@ -33,6 +33,7 @@ import {
   deleteTrackFromRoomLibrary,
   mergeTracksIntoRoomLibrary,
   moveTrackInRoomLibrary,
+  writeLibrarySortMode,
   writeControlAndProgress,
   writeLibrary,
   writeLibraryAndProgress,
@@ -40,8 +41,10 @@ import {
 } from "../../room/stateOperations"
 import {
   controlPath,
+  LibrarySortMode,
   libraryOrderPath,
   libraryPath,
+  librarySortModePath,
   progressPath,
 } from "../../room/metadataSchema"
 
@@ -528,5 +531,27 @@ describe("room state operations", () => {
     const moveDown = await moveTrackInRoomLibrary(second, "down")
     expect(moveDown.changed).toBe(true)
     expect(moveDown.library).toEqual([first, second, third])
+  })
+
+  it("writes library sort mode metadata", async () => {
+    mocks.metadata = {
+      [librarySortModePath]: LibrarySortMode.NotSorted,
+    }
+
+    const changed = await writeLibrarySortMode(LibrarySortMode.Ascending)
+
+    expect(changed).toBe(true)
+    expect(mocks.metadata[librarySortModePath]).toBe(LibrarySortMode.Ascending)
+  })
+
+  it("no-ops writing library sort mode when unchanged", async () => {
+    mocks.metadata = {
+      [librarySortModePath]: LibrarySortMode.Descending,
+    }
+
+    const changed = await writeLibrarySortMode(LibrarySortMode.Descending)
+
+    expect(changed).toBe(false)
+    expect(mocks.metadata[librarySortModePath]).toBe(LibrarySortMode.Descending)
   })
 })

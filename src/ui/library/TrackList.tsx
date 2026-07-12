@@ -9,6 +9,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Tooltip,
 } from "@mui/material"
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded"
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded"
@@ -32,6 +33,7 @@ interface TrackCardProps {
   canMoveDown: boolean
   moveUp: (track: Track) => void
   moveDown: (track: Track) => void
+  canReorder: boolean
   matches?: ReadonlyArray<Fuse.FuseResultMatch>
 }
 
@@ -44,6 +46,7 @@ function TrackCard(props: TrackCardProps) {
     canMoveDown,
     moveUp,
     moveDown,
+    canReorder,
     matches,
   } = props
   const currentMessage = useMessage()
@@ -104,30 +107,52 @@ function TrackCard(props: TrackCardProps) {
           subheader={track.title}
           action={
             <Stack direction="column" spacing={0}>
-              <IconButton
-                size="small"
-                aria-label={`Move ${track.title} up`}
-                disabled={!canMoveUp}
-                onClick={event => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  moveUp(track)
-                }}
+              <Tooltip
+                title={
+                  canReorder
+                    ? ""
+                    : "disabled because the alphabetical sort is enabled"
+                }
+                enterDelay={500}
               >
-                <ArrowUpwardRoundedIcon fontSize="inherit" />
-              </IconButton>
-              <IconButton
-                size="small"
-                aria-label={`Move ${track.title} down`}
-                disabled={!canMoveDown}
-                onClick={event => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  moveDown(track)
-                }}
+                <span>
+                  <IconButton
+                    size="small"
+                    aria-label={`Move ${track.title} up`}
+                    disabled={!canReorder || !canMoveUp}
+                    onClick={event => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      moveUp(track)
+                    }}
+                  >
+                    <ArrowUpwardRoundedIcon fontSize="inherit" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip
+                title={
+                  canReorder
+                    ? ""
+                    : "disabled because the alphabetical sort is enabled"
+                }
+                enterDelay={500}
               >
-                <ArrowDownwardRoundedIcon fontSize="inherit" />
-              </IconButton>
+                <span>
+                  <IconButton
+                    size="small"
+                    aria-label={`Move ${track.title} down`}
+                    disabled={!canReorder || !canMoveDown}
+                    onClick={event => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      moveDown(track)
+                    }}
+                  >
+                    <ArrowDownwardRoundedIcon fontSize="inherit" />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </Stack>
           }
           subheaderTypographyProps={{
@@ -182,10 +207,18 @@ interface Props {
   confirm: (payload: ConfirmPayload) => void
   moveTrackUp: (track: Track) => void
   moveTrackDown: (track: Track) => void
+  canReorder: boolean
 }
 
 export function TrackList(props: Props) {
-  const { editTrack, searchResults, confirm, moveTrackUp, moveTrackDown } = props
+  const {
+    editTrack,
+    searchResults,
+    confirm,
+    moveTrackUp,
+    moveTrackDown,
+    canReorder,
+  } = props
 
   return (
     <>
@@ -199,6 +232,7 @@ export function TrackList(props: Props) {
             canMoveDown={index < searchResults.length - 1}
             moveUp={moveTrackUp}
             moveDown={moveTrackDown}
+            canReorder={canReorder}
             matches={result.matches}
           />
         </ListItem>

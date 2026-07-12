@@ -10,10 +10,14 @@ import OBR from "@owlbear-rodeo/sdk"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
 import {
+  getLibrarySortMode,
   moveTrackDownInLibrary,
   moveTrackUpInLibrary,
+  onLibrarySortModeChange,
   onLibraryChange,
+  setLibrarySortMode,
 } from "../../room/library"
+import { LibrarySortMode } from "../../room/metadataSchema"
 import { Track } from "../../domain/track"
 import { getMute, setMute as persistMute } from "../../shared/mute"
 import { getVolume, setVolume as persistVolume } from "../../shared/volume"
@@ -47,6 +51,26 @@ export function App() {
   const [searchResults, setSearchResults] = useState<Fuse.FuseResult<Track>[]>(
     [],
   )
+  const [sortMode, setSortMode] = useState<LibrarySortMode>(() =>
+    getLibrarySortMode(),
+  )
+
+  useEffect(() => {
+    return onLibrarySortModeChange(setSortMode)
+  }, [])
+
+  const cycleSortMode = () => {
+    switch (sortMode) {
+      case LibrarySortMode.NotSorted:
+        setLibrarySortMode(LibrarySortMode.Ascending)
+        return
+      case LibrarySortMode.Ascending:
+        setLibrarySortMode(LibrarySortMode.Descending)
+        return
+      default:
+        setLibrarySortMode(LibrarySortMode.NotSorted)
+    }
+  }
 
   // tag suggestions state for track dialog
   const tagSuggestions = useMemo<string[]>(() => {
@@ -126,6 +150,8 @@ export function App() {
               <TrackSearch
                 trackLibrary={trackLibrary}
                 onSearch={setSearchResults}
+                sortMode={sortMode}
+                onCycleSortMode={cycleSortMode}
               />
             </Toolbar>
           </GMOnly>
@@ -173,6 +199,7 @@ export function App() {
             confirm={setConfirmPayload}
             moveTrackUp={moveTrackUpInLibrary}
             moveTrackDown={moveTrackDownInLibrary}
+            canReorder={sortMode === LibrarySortMode.NotSorted}
           />
         </GMOnly>
       </Box>

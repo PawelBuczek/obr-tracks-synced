@@ -1,15 +1,67 @@
-import { TextField } from "@mui/material"
+import SortByAlphaRoundedIcon from "@mui/icons-material/SortByAlphaRounded"
+import { IconButton, Stack, TextField, Tooltip } from "@mui/material"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
+import { LibrarySortMode } from "../../room/metadataSchema"
 import { Track } from "../../domain/track"
 
 interface Props {
   trackLibrary: Track[]
   onSearch: (results: Fuse.FuseResult<Track>[]) => void
+  sortMode: LibrarySortMode
+  onCycleSortMode: () => void
+}
+
+function sortModeLabel(mode: LibrarySortMode): string {
+  switch (mode) {
+    case LibrarySortMode.Ascending:
+      return "Ascending"
+    case LibrarySortMode.Descending:
+      return "Descending"
+    default:
+      return "Not sorted"
+  }
+}
+
+function sortResults(
+  results: Fuse.FuseResult<Track>[],
+  mode: LibrarySortMode,
+): Fuse.FuseResult<Track>[] {
+  if (mode === LibrarySortMode.NotSorted) {
+    return results
+  }
+
+  const sorted = [...results].sort((left, right) =>
+    left.item.title.localeCompare(right.item.title, undefined, {
+      sensitivity: "base",
+    }),
+  )
+
+  return mode === LibrarySortMode.Descending ? sorted.reverse() : sorted
+}
+
+function sortModeButtonSx(mode: LibrarySortMode) {
+  switch (mode) {
+    case LibrarySortMode.Ascending:
+      return {
+        color: "success.main",
+        bgcolor: "success.light",
+      }
+    case LibrarySortMode.Descending:
+      return {
+        color: "warning.dark",
+        bgcolor: "warning.light",
+      }
+    default:
+      return {
+        color: "inherit",
+        bgcolor: "transparent",
+      }
+  }
 }
 
 export function TrackSearch(props: Props) {
-  const { trackLibrary, onSearch } = props
+  const { trackLibrary, onSearch, sortMode, onCycleSortMode } = props
   const fuse = useMemo(() => {
     return new Fuse(trackLibrary, {
       includeMatches: true,
@@ -29,42 +81,54 @@ export function TrackSearch(props: Props) {
   }, [trackLibrary])
 
   const [value, setValue] = useState("")
+
   useEffect(() => {
-    setValue("")
-    onSearch(all)
-  }, [trackLibrary])
+    const query = value.trim()
+
+    if (!query) {
+      onSearch(sortResults(all, sortMode))
+      return
+    }
+
+    const terms = query
+      .split(" ")
+      .filter(e => e)
+      .map(e => {
+        return { tags: e }
+      })
+
+    const results = fuse.search({
+      $or: [{ title: query }, { $and: terms }],
+    })
+
+    onSearch(sortResults(results, sortMode))
+  }, [all, fuse, onSearch, sortMode, value])
 
   return (
-    <TextField
-      autoComplete="off"
-      label="Search"
-      margin="normal"
-      fullWidth={true}
-      type={"search"}
-      value={value}
-      onChange={e => {
-        setValue(e.target.value)
-
-        // on empty, reset the list
-        if (!e.target.value) {
-          onSearch(all)
-          return
-        }
-
-        // build a list of terms, filtering out blanks
-        const terms = e.target.value
-          .split(" ")
-          .filter(e => e)
-          .map(e => {
-            return { tags: e }
-          })
-
-        // run the search
-        const results = fuse.search({
-          $or: [{ title: e.target.value }, { $and: terms }],
-        })
-        onSearch(results)
-      }}
-    />
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center", width: "100%" }}>
+      <TextField
+        autoComplete="off"
+        label="Search"
+        margin="normal"
+        fullWidth={true}
+        type={"search"}
+        value={value}
+        onChange={e => {
+          setValue(e.target.value)
+        }}
+      />
+      <Tooltip
+        title={`sort alphabetically. Current mode: ${sortModeLabel(sortMode)}`}
+        enterDelay={500}
+      >
+        <IconButton
+          aria-label={`Toggle alphabetical sort. Current mode: ${sortModeLabel(sortMode)}`}
+          onClick={onCycleSortMode}
+          sx={sortModeButtonSx(sortMode)}
+        >
+          <SortByAlphaRoundedIcon />
+        </IconButton>
+      </Tooltip>
+    </Stack>
   )
 }

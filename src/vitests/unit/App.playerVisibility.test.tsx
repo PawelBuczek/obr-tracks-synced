@@ -40,6 +40,12 @@ vi.mock("../../room/library", () => ({
   }),
   moveTrackUpInLibrary: vi.fn(),
   moveTrackDownInLibrary: vi.fn(),
+  getLibrarySortMode: vi.fn(() => "not_sorted"),
+  setLibrarySortMode: vi.fn(),
+  onLibrarySortModeChange: vi.fn((callback: (mode: string) => void) => {
+    callback("not_sorted")
+    return () => undefined
+  }),
 }))
 
 vi.mock("../../ui/controls", () => ({

@@ -9,9 +9,12 @@ import {
   extractControlMessage,
   extractLibrary,
   extractLibraryOrderMap,
+  extractLibrarySortMode,
   extractProgressMap,
   libraryPath,
   libraryOrderPath,
+  LibrarySortMode,
+  librarySortModePath,
   progressPath,
   sortLibraryByOrder,
   RoomControlMessage,
@@ -92,6 +95,29 @@ export interface LibraryMutationOutcome {
 }
 
 export type LibraryMoveDirection = "up" | "down"
+
+export async function writeLibrarySortMode(
+  mode: LibrarySortMode,
+): Promise<boolean> {
+  let changed = false
+
+  await updateMetadataWithCurrent((current: Metadata) => {
+    const currentMode = extractLibrarySortMode(current)
+
+    if (currentMode === mode) {
+      changed = false
+      return undefined
+    }
+
+    changed = true
+
+    return {
+      [librarySortModePath]: mode,
+    }
+  })
+
+  return changed
+}
 
 function sameTags(left: string[], right: string[]): boolean {
   if (left.length !== right.length) {

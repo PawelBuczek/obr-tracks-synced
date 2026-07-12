@@ -7,8 +7,15 @@ export const controlPath = key("control")
 export const progressPath = key("progress")
 export const libraryPath = key("library")
 export const libraryOrderPath = key("libraryOrder")
+export const librarySortModePath = key("librarySortMode")
 
 export type LibraryOrderMap = Record<string, number>
+
+export enum LibrarySortMode {
+  NotSorted = "not_sorted",
+  Ascending = "ascending",
+  Descending = "descending",
+}
 
 export interface RoomControlMessage {
   id: string
@@ -43,6 +50,20 @@ export function extractLibraryOrderMap(metadata: Metadata): LibraryOrderMap {
   })
 
   return orderMap
+}
+
+export function extractLibrarySortMode(metadata: Metadata): LibrarySortMode {
+  const value = metadata[librarySortModePath]
+
+  if (
+    value === LibrarySortMode.NotSorted ||
+    value === LibrarySortMode.Ascending ||
+    value === LibrarySortMode.Descending
+  ) {
+    return value
+  }
+
+  return LibrarySortMode.NotSorted
 }
 
 export function sortLibraryByOrder(

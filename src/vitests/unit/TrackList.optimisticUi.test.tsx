@@ -60,6 +60,7 @@ function renderTrackList(
   ],
   moveTrackUp = () => undefined,
   moveTrackDown = () => undefined,
+  canReorder = true,
 ) {
   render(
     <TrackList
@@ -68,6 +69,7 @@ function renderTrackList(
       confirm={() => undefined}
       moveTrackUp={moveTrackUp}
       moveTrackDown={moveTrackDown}
+      canReorder={canReorder}
     />,
   )
 }
@@ -129,5 +131,29 @@ describe("TrackList optimistic UI on click", () => {
     expect(mocks.play).not.toHaveBeenCalled()
     expect(mocks.pause).not.toHaveBeenCalled()
     expect(mocks.resume).not.toHaveBeenCalled()
+  })
+
+  it("disables reorder buttons when alphabetical sort is enabled", async () => {
+    const moveTrackDown = vi.fn()
+    const moveTrackUp = vi.fn()
+
+    renderTrackList(
+      [
+        { item: track, refIndex: 0 },
+        { item: trackTwo, refIndex: 1 },
+      ],
+      moveTrackUp,
+      moveTrackDown,
+      false,
+    )
+
+    const downButton = screen.getByLabelText("Move Battle Theme down")
+    const upButton = screen.getByLabelText("Move Forest Theme up")
+
+    expect(downButton).toHaveProperty("disabled", true)
+    expect(upButton).toHaveProperty("disabled", true)
+
+    expect(moveTrackDown).not.toHaveBeenCalled()
+    expect(moveTrackUp).not.toHaveBeenCalled()
   })
 })
