@@ -8,9 +8,12 @@ import {
   controlPath,
   extractControlMessage,
   extractLibrary,
+  extractLibraryOrderMap,
   extractProgressMap,
   libraryPath,
+  libraryOrderPath,
   progressPath,
+  sortLibraryByOrder,
   RoomControlMessage,
 } from "./metadataSchema"
 
@@ -88,6 +91,8 @@ export interface LibraryMutationOutcome {
   shouldStopPlayback: boolean
 }
 
+export type LibraryMoveDirection = "up" | "down"
+
 function sameTags(left: string[], right: string[]): boolean {
   if (left.length !== right.length) {
     return false
@@ -130,12 +135,30 @@ function getUpdatedControlTrack(
   }
 }
 
-function buildMergedLibrary(currentLibrary: Track[], tracks: Track[]): Track[] {
+function getNextLibraryOrder(orderMap: Record<string, number>): number {
+  const values = Object.values(orderMap)
+
+  if (values.length === 0) {
+    return 0
+  }
+
+  return Math.max(...values) + 1
+}
+
+function buildMergedLibrary(
+  currentLibrary: Track[],
+  currentOrderMap: Record<string, number>,
+  tracks: Track[],
+): {
+  library: Track[]
+  orderMap: Record<string, number>
+} {
   const updatedLibrary = currentLibrary.map(track => ({
     ...track,
   }))
-  const newTracks: Track[] = []
   const allTracks: Track[] = [...updatedLibrary]
+  const nextOrderMap: Record<string, number> = { ...currentOrderMap }
+  let nextOrder = getNextLibraryOrder(nextOrderMap)
 
   tracks.forEach(track => {
     const { fixed, validation } = checkTrack(track)
@@ -167,12 +190,17 @@ function buildMergedLibrary(currentLibrary: Track[], tracks: Track[]): Track[] {
         tags: fixed.tags,
       }
     } else {
-      newTracks.push(fixed)
+      nextOrderMap[fixed.url] = nextOrder
+      nextOrder += 1
+      updatedLibrary.push(fixed)
       allTracks.push(fixed)
     }
   })
 
-  return [...newTracks, ...updatedLibrary]
+  return {
+    library: sortLibraryByOrder(updatedLibrary, nextOrderMap),
+    orderMap: nextOrderMap,
+  }
 }
 
 export async function mergeTracksIntoRoomLibrary(
@@ -187,14 +215,21 @@ export async function mergeTracksIntoRoomLibrary(
 
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
-    const nextLibrary = buildMergedLibrary(currentLibrary, tracks)
+    const currentOrderMap = extractLibraryOrderMap(current)
+    const { library: nextLibrary, orderMap: nextOrderMap } = buildMergedLibrary(
+      currentLibrary,
+      currentOrderMap,
+      tracks,
+    )
     const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
     const nextControl = getUpdatedControlTrack(currentMessage, nextLibrary)
 
     const libraryChanged =
       JSON.stringify(nextLibrary) !== JSON.stringify(currentLibrary)
-    const changed = libraryChanged || nextControl !== undefined
+    const orderChanged =
+      JSON.stringify(nextOrderMap) !== JSON.stringify(currentOrderMap)
+    const changed = libraryChanged || orderChanged || nextControl !== undefined
 
     outcome = {
       changed,
@@ -209,6 +244,7 @@ export async function mergeTracksIntoRoomLibrary(
 
     return {
       ...(libraryChanged ? { [libraryPath]: nextLibrary } : {}),
+      ...(orderChanged ? { [libraryOrderPath]: nextOrderMap } : {}),
       ...(nextControl ? { [controlPath]: nextControl } : {}),
     }
   })
@@ -228,6 +264,7 @@ export async function deleteTrackFromRoomLibrary(
 
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
+    const currentOrderMap = extractLibraryOrderMap(current)
     const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
 
@@ -244,29 +281,39 @@ export async function deleteTrackFromRoomLibrary(
     const nextLibrary = currentLibrary.filter(
       currentTrack => !isSameTrack(currentTrack, track),
     )
+    const nextOrderMap: Record<string, number> = { ...currentOrderMap }
+    currentLibrary
+      .filter(currentTrack => isSameTrack(currentTrack, track))
+      .forEach(removedTrack => {
+        delete nextOrderMap[removedTrack.url]
+      })
+
     const trackIsPlaying =
       currentMessage !== undefined && isSameTrack(currentMessage.track, track)
     const nextProgress = trackIsPlaying
       ? removeTrackProgress(progress, currentMessage.track)
       : progress
+    const sortedNextLibrary = sortLibraryByOrder(nextLibrary, nextOrderMap)
 
     outcome = {
       changed: true,
-      library: nextLibrary,
+      library: sortedNextLibrary,
       progress: nextProgress,
       shouldStopPlayback: trackIsPlaying,
     }
 
     if (trackIsPlaying) {
       return {
-        [libraryPath]: nextLibrary,
+        [libraryPath]: sortedNextLibrary,
+        [libraryOrderPath]: nextOrderMap,
         [progressPath]: nextProgress,
         [controlPath]: undefined,
       }
     }
 
     return {
-      [libraryPath]: nextLibrary,
+      [libraryPath]: sortedNextLibrary,
+      [libraryOrderPath]: nextOrderMap,
     }
   })
 
@@ -283,11 +330,13 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
 
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
+    const currentOrderMap = extractLibraryOrderMap(current)
     const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
 
     const shouldNoop =
       currentLibrary.length === 0 &&
+      Object.keys(currentOrderMap).length === 0 &&
       Object.keys(progress).length === 0 &&
       currentMessage === undefined
 
@@ -310,8 +359,80 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
 
     return {
       [libraryPath]: [],
+      [libraryOrderPath]: {},
       [progressPath]: {},
       [controlPath]: undefined,
+    }
+  })
+
+  return outcome
+}
+
+export async function moveTrackInRoomLibrary(
+  track: Track,
+  direction: LibraryMoveDirection,
+): Promise<LibraryMutationOutcome> {
+  let outcome: LibraryMutationOutcome = {
+    changed: false,
+    library: [],
+    progress: {},
+    shouldStopPlayback: false,
+  }
+
+  await updateMetadataWithCurrent((current: Metadata) => {
+    const currentLibrary = extractLibrary(current)
+    const currentOrderMap = extractLibraryOrderMap(current)
+    const progress = extractProgressMap(current)
+
+    const sortedLibrary = sortLibraryByOrder(currentLibrary, currentOrderMap)
+    const sourceIndex = sortedLibrary.findIndex(currentTrack =>
+      isSameTrack(currentTrack, track),
+    )
+
+    if (sourceIndex < 0) {
+      outcome = {
+        changed: false,
+        library: sortedLibrary,
+        progress,
+        shouldStopPlayback: false,
+      }
+      return undefined
+    }
+
+    const targetIndex = direction === "up" ? sourceIndex - 1 : sourceIndex + 1
+
+    if (targetIndex < 0 || targetIndex >= sortedLibrary.length) {
+      outcome = {
+        changed: false,
+        library: sortedLibrary,
+        progress,
+        shouldStopPlayback: false,
+      }
+      return undefined
+    }
+
+    const sourceTrack = sortedLibrary[sourceIndex]
+    const targetTrack = sortedLibrary[targetIndex]
+    const sourceOrder = currentOrderMap[sourceTrack.url] ?? sourceIndex
+    const targetOrder = currentOrderMap[targetTrack.url] ?? targetIndex
+
+    const nextOrderMap: Record<string, number> = {
+      ...currentOrderMap,
+      [sourceTrack.url]: targetOrder,
+      [targetTrack.url]: sourceOrder,
+    }
+    const nextLibrary = sortLibraryByOrder(currentLibrary, nextOrderMap)
+
+    outcome = {
+      changed: true,
+      library: nextLibrary,
+      progress,
+      shouldStopPlayback: false,
+    }
+
+    return {
+      [libraryPath]: nextLibrary,
+      [libraryOrderPath]: nextOrderMap,
     }
   })
 

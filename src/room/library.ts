@@ -7,12 +7,15 @@ import { checkTrack } from "../shared/utils"
 import { stopPlayback } from "./mb"
 import {
   extractLibrary,
+  extractLibraryOrderMap,
   libraryPath,
+  sortLibraryByOrder,
 } from "./metadataSchema"
 import {
   clearRoomLibrary,
   deleteTrackFromRoomLibrary,
   mergeTracksIntoRoomLibrary,
+  moveTrackInRoomLibrary,
   writeLibrary,
 } from "./stateOperations"
 
@@ -46,7 +49,9 @@ function runWhenRoomReady(): Promise<void> {
 
 function readMetadata(metadata: Metadata) {
   console.log("[library] readMetadata", metadata)
-  cachedLibrary = extractLibrary(metadata)
+  const library = extractLibrary(metadata)
+  const orderMap = extractLibraryOrderMap(metadata)
+  cachedLibrary = sortLibraryByOrder(library, orderMap)
 }
 
 async function refreshMetadataFromRoom() {
@@ -171,6 +176,28 @@ export function clearLibrary() {
     if (outcome.shouldStopPlayback) {
       stopPlayback()
     }
+
+    if (outcome.changed) {
+      push()
+    }
+  })
+}
+
+export function moveTrackUpInLibrary(track: Track) {
+  return roomSyncReady.then(async () => {
+    const outcome = await moveTrackInRoomLibrary(track, "up")
+    updateCacheFromOperationResult(outcome.library)
+
+    if (outcome.changed) {
+      push()
+    }
+  })
+}
+
+export function moveTrackDownInLibrary(track: Track) {
+  return roomSyncReady.then(async () => {
+    const outcome = await moveTrackInRoomLibrary(track, "down")
+    updateCacheFromOperationResult(outcome.library)
 
     if (outcome.changed) {
       push()

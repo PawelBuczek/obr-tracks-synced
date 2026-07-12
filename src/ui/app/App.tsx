@@ -9,7 +9,11 @@ import {
 import OBR from "@owlbear-rodeo/sdk"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
-import { onLibraryChange } from "../../room/library"
+import {
+  moveTrackDownInLibrary,
+  moveTrackUpInLibrary,
+  onLibraryChange,
+} from "../../room/library"
 import { Track } from "../../domain/track"
 import { getMute, setMute as persistMute } from "../../shared/mute"
 import { getVolume, setVolume as persistVolume } from "../../shared/volume"
@@ -167,6 +171,8 @@ export function App() {
             searchResults={searchResults}
             editTrack={setTrackDialogTrack}
             confirm={setConfirmPayload}
+            moveTrackUp={moveTrackUpInLibrary}
+            moveTrackDown={moveTrackDownInLibrary}
           />
         </GMOnly>
       </Box>

@@ -4,9 +4,12 @@ import {
   controlPath,
   extractControlMessage,
   extractLibrary,
+  extractLibraryOrderMap,
   extractProgressMap,
   libraryPath,
+  libraryOrderPath,
   progressPath,
+  sortLibraryByOrder,
 } from "../../room/metadataSchema"
 
 describe("metadata schema", () => {
@@ -48,6 +51,44 @@ describe("metadata schema", () => {
     expect(extractProgressMap(metadata)).toEqual({
       "https://example.com/ok.mp3": 12,
     })
+  })
+
+  it("extracts library order map and ignores invalid values", () => {
+    const metadata = {
+      [libraryOrderPath]: {
+        "https://example.com/first.mp3": 0,
+        "https://example.com/second.mp3": 2,
+        "https://example.com/bad.mp3": -1,
+        "https://example.com/string.mp3": "3",
+      },
+    }
+
+    expect(extractLibraryOrderMap(metadata)).toEqual({
+      "https://example.com/first.mp3": 0,
+      "https://example.com/second.mp3": 2,
+    })
+  })
+
+  it("sorts library by ascending order", () => {
+    const library = [
+      {
+        title: "Second",
+        url: "https://example.com/second.mp3",
+        tags: [],
+      },
+      {
+        title: "First",
+        url: "https://example.com/first.mp3",
+        tags: [],
+      },
+    ]
+
+    const sorted = sortLibraryByOrder(library, {
+      "https://example.com/second.mp3": 1,
+      "https://example.com/first.mp3": 0,
+    })
+
+    expect(sorted.map(track => track.title)).toEqual(["First", "Second"])
   })
 
   it("extracts a valid control message", () => {

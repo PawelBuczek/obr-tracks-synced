@@ -38,6 +38,8 @@ vi.mock("../../room/library", () => ({
     setLibrary(fixture.tracks)
     return () => undefined
   }),
+  moveTrackUpInLibrary: vi.fn(),
+  moveTrackDownInLibrary: vi.fn(),
 }))
 
 vi.mock("../../ui/controls", () => ({

@@ -48,12 +48,26 @@ const track = {
   tags: ["combat"],
 }
 
-function renderTrackList() {
+const trackTwo = {
+  title: "Forest Theme",
+  url: "https://example.com/forest.mp3",
+  tags: ["ambient"],
+}
+
+function renderTrackList(
+  searchResults: Array<{ item: typeof track; refIndex: number }> = [
+    { item: track, refIndex: 0 },
+  ],
+  moveTrackUp = () => undefined,
+  moveTrackDown = () => undefined,
+) {
   render(
     <TrackList
-      searchResults={[{ item: track, refIndex: 0 }]}
+      searchResults={searchResults}
       editTrack={() => undefined}
       confirm={() => undefined}
+      moveTrackUp={moveTrackUp}
+      moveTrackDown={moveTrackDown}
     />,
   )
 }
@@ -92,5 +106,28 @@ describe("TrackList optimistic UI on click", () => {
 
     expect(mocks.optimisticResume).toHaveBeenCalledTimes(1)
     expect(mocks.resume).toHaveBeenCalledTimes(1)
+  })
+
+  it("reorders via arrow buttons without triggering playback click", async () => {
+    const moveTrackDown = vi.fn()
+    const moveTrackUp = vi.fn()
+
+    renderTrackList(
+      [
+        { item: track, refIndex: 0 },
+        { item: trackTwo, refIndex: 1 },
+      ],
+      moveTrackUp,
+      moveTrackDown,
+    )
+
+    await userEvent.click(screen.getByLabelText("Move Battle Theme down"))
+    await userEvent.click(screen.getByLabelText("Move Forest Theme up"))
+
+    expect(moveTrackDown).toHaveBeenCalledWith(track)
+    expect(moveTrackUp).toHaveBeenCalledWith(trackTwo)
+    expect(mocks.play).not.toHaveBeenCalled()
+    expect(mocks.pause).not.toHaveBeenCalled()
+    expect(mocks.resume).not.toHaveBeenCalled()
   })
 })

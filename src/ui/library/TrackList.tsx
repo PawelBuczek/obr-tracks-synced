@@ -1,4 +1,5 @@
 import {
+  IconButton,
   Card,
   CardActionArea,
   CardContent,
@@ -7,7 +8,10 @@ import {
   ListItem,
   Menu,
   MenuItem,
+  Stack,
 } from "@mui/material"
+import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded"
+import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded"
 import Fuse from "fuse.js"
 import { useState } from "react"
 import { Track } from "../../domain/track"
@@ -24,11 +28,24 @@ interface TrackCardProps {
   track: Track
   editTrack: (track: Track) => void
   confirm: (payload: ConfirmPayload) => void
+  canMoveUp: boolean
+  canMoveDown: boolean
+  moveUp: (track: Track) => void
+  moveDown: (track: Track) => void
   matches?: ReadonlyArray<Fuse.FuseResultMatch>
 }
 
 function TrackCard(props: TrackCardProps) {
-  const { track, editTrack, confirm, matches } = props
+  const {
+    track,
+    editTrack,
+    confirm,
+    canMoveUp,
+    canMoveDown,
+    moveUp,
+    moveDown,
+    matches,
+  } = props
   const currentMessage = useMessage()
   const { optimisticPause, optimisticResume } = useMessageOptimisticActions()
   const [contextMenu, setContextMenu] = useState<{
@@ -85,6 +102,34 @@ function TrackCard(props: TrackCardProps) {
       <CardActionArea disableRipple={false} onClick={handleTrackClick}>
         <CardHeader
           subheader={track.title}
+          action={
+            <Stack direction="column" spacing={0}>
+              <IconButton
+                size="small"
+                aria-label={`Move ${track.title} up`}
+                disabled={!canMoveUp}
+                onClick={event => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  moveUp(track)
+                }}
+              >
+                <ArrowUpwardRoundedIcon fontSize="inherit" />
+              </IconButton>
+              <IconButton
+                size="small"
+                aria-label={`Move ${track.title} down`}
+                disabled={!canMoveDown}
+                onClick={event => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  moveDown(track)
+                }}
+              >
+                <ArrowDownwardRoundedIcon fontSize="inherit" />
+              </IconButton>
+            </Stack>
+          }
           subheaderTypographyProps={{
             color: matches?.find(
               m => m.key === "title" && m.value === track.title,
@@ -135,19 +180,25 @@ interface Props {
   searchResults: Fuse.FuseResult<Track>[]
   editTrack: (track: Track) => void
   confirm: (payload: ConfirmPayload) => void
+  moveTrackUp: (track: Track) => void
+  moveTrackDown: (track: Track) => void
 }
 
 export function TrackList(props: Props) {
-  const { editTrack, searchResults, confirm } = props
+  const { editTrack, searchResults, confirm, moveTrackUp, moveTrackDown } = props
 
   return (
     <>
-      {searchResults.map(result => (
+      {searchResults.map((result, index) => (
         <ListItem key={result.item.url} component="div">
           <TrackCard
             track={result.item}
             editTrack={editTrack}
             confirm={confirm}
+            canMoveUp={index > 0}
+            canMoveDown={index < searchResults.length - 1}
+            moveUp={moveTrackUp}
+            moveDown={moveTrackDown}
             matches={result.matches}
           />
         </ListItem>

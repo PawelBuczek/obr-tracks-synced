@@ -6,6 +6,9 @@ import { key } from "../shared/key"
 export const controlPath = key("control")
 export const progressPath = key("progress")
 export const libraryPath = key("library")
+export const libraryOrderPath = key("libraryOrder")
+
+export type LibraryOrderMap = Record<string, number>
 
 export interface RoomControlMessage {
   id: string
@@ -22,6 +25,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
+}
+
+export function extractLibraryOrderMap(metadata: Metadata): LibraryOrderMap {
+  const value = metadata[libraryOrderPath]
+
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  const orderMap: LibraryOrderMap = {}
+
+  Object.entries(value).forEach(([trackUrl, order]) => {
+    if (isFiniteNumber(order) && order >= 0) {
+      orderMap[trackUrl] = order
+    }
+  })
+
+  return orderMap
+}
+
+export function sortLibraryByOrder(
+  library: Track[],
+  orderMap: LibraryOrderMap,
+): Track[] {
+  return [...library].sort((left, right) => {
+    const leftOrder = orderMap[left.url] ?? 0
+    const rightOrder = orderMap[right.url] ?? 0
+
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder
+    }
+
+    return left.title.localeCompare(right.title)
+  })
 }
 
 function parseTrack(value: unknown): Track | undefined {
