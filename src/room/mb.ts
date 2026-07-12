@@ -104,6 +104,11 @@ function getCurrentOffset(message: Message) {
   return getPlaybackOffset(message.offset, message.time, now())
 }
 
+export function getCachedTrackOffset(trackUrl: string): number | undefined {
+  const cachedOffset = currentProgress[trackUrl]
+  return Number.isFinite(cachedOffset) ? cachedOffset : undefined
+}
+
 async function ensureGmCanSeek() {
   const role = await OBR.player.getRole()
   if (role !== "GM") {

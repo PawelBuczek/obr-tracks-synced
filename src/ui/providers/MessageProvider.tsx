@@ -5,9 +5,9 @@ import {
   useEffect,
   useState,
 } from "react"
-import { Message, Action, onMessage } from "../../room/mb"
+import { Message, Action, getCachedTrackOffset, onMessage } from "../../room/mb"
 import { isSameTrack, Track } from "../../domain/track"
-import { getSeconds } from "../../shared/utils"
+import { getPlaybackTime, getSeconds } from "../../shared/utils"
 import { checkTrack, convertToDirectDownloadable } from "../../shared/utils"
 
 const Context = createContext<Message | undefined>(undefined)
@@ -61,6 +61,18 @@ function matchesCanonical(
   }
 
   return false
+}
+
+function getMessageOffset(message: Message): number {
+  if (message.action === Action.Play) {
+    return getPlaybackTime(
+      message.offset,
+      getSeconds(message.time),
+      message.duration,
+    )
+  }
+
+  return message.offset
 }
 
 export const useMessage = () => useContext(Context)
@@ -129,6 +141,10 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
       }
 
       const base = visibleMessage
+      const isSameAsCurrent =
+        base?.track !== undefined && isSameTrack(base.track, normalizedTrack)
+      const cachedOffset = getCachedTrackOffset(normalizedTrack.url)
+
       setOverride({
         kind: "message",
         expiresAt: now() + optimisticWindowMs,
@@ -136,11 +152,11 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
           id: base?.id ?? "optimistic-play",
           time: new Date(),
           action: Action.Play,
-          offset: base?.track && isSameTrack(base.track, normalizedTrack) ? base.offset : 0,
+          offset: isSameAsCurrent
+            ? getMessageOffset(base)
+            : cachedOffset ?? 0,
           duration:
-            base?.track && isSameTrack(base.track, normalizedTrack)
-              ? base.duration
-              : 0,
+            isSameAsCurrent ? base.duration : 0,
           track: normalizedTrack,
         },
       })

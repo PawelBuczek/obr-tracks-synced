@@ -2,12 +2,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest"
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import React from "react"
 import { TrackProgress } from "../../ui/player/TrackProgress"
-import { Action } from "../../room/mb"
+import { Action, type Message } from "../../room/mb"
 
 const mocks = vi.hoisted(() => ({
   seekToOffset: vi.fn(),
   useRole: vi.fn(),
-  useMessage: vi.fn(() => undefined),
+  useMessage: vi.fn<() => Message | undefined>(() => undefined),
 }))
 
 vi.mock("@mui/material", () => ({
@@ -84,7 +84,7 @@ describe("TrackProgress freeze regression", () => {
   it("keeps current synced position when second grab starts without movement", () => {
     vi.useFakeTimers()
 
-    let message = {
+    let message: Message = {
       id: "msg-1",
       time: new Date("2026-01-01T00:00:00Z"),
       action: Action.Pause,
