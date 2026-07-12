@@ -105,8 +105,13 @@ export function TrackSearch(props: Props) {
   }, [all, fuse, onSearch, sortMode, value])
 
   return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center", width: "100%" }}>
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "center", width: "100%", minWidth: 0 }}
+    >
       <TextField
+        sx={{ flex: 1, minWidth: 0 }}
         autoComplete="off"
         label="Search"
         margin="normal"
@@ -124,7 +129,7 @@ export function TrackSearch(props: Props) {
         <IconButton
           aria-label={`Toggle alphabetical sort. Current mode: ${sortModeLabel(sortMode)}`}
           onClick={onCycleSortMode}
-          sx={sortModeButtonSx(sortMode)}
+          sx={{ ...sortModeButtonSx(sortMode), flexShrink: 0 }}
         >
           <SortByAlphaRoundedIcon />
         </IconButton>

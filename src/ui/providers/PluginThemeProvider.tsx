@@ -1,3 +1,4 @@
+import { GlobalStyles } from "@mui/material"
 import { Theme as MuiTheme, createTheme } from "@mui/material/styles"
 import { ThemeProvider } from "@mui/material/styles"
 import OBR, { Theme } from "@owlbear-rodeo/sdk"
@@ -47,5 +48,23 @@ export function PluginThemeProvider({
     return OBR.theme.onChange(updateTheme)
   }, [])
 
-  return <ThemeProvider theme={theme}>{children}</ThemeProvider>
+  return (
+    <ThemeProvider theme={theme}>
+      <GlobalStyles
+        styles={{
+          "html, body, #root": {
+            msOverflowStyle: "none",
+            overflowX: "hidden",
+            scrollbarWidth: "none",
+          },
+          "html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar": {
+            display: "none",
+            height: 0,
+            width: 0,
+          },
+        }}
+      />
+      {children}
+    </ThemeProvider>
+  )
 }
