@@ -54,9 +54,13 @@ export function Audio(props: AudioProps) {
         return
       }
 
-      void retryPromise.finally(() => {
-        audio.muted = muteRef.current
-      })
+      void retryPromise
+        .catch(() => {
+          // Browser still blocks autoplay even in muted fallback.
+        })
+        .finally(() => {
+          audio.muted = muteRef.current
+        })
     })
   }
 

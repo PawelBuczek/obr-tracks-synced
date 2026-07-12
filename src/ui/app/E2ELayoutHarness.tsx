@@ -15,7 +15,7 @@ import {
 import { useMemo, useState } from "react"
 
 export function E2ELayoutHarness() {
-  const gmPlayerSpacerHeight = 135
+  const gmPlayerSpacerHeight = 120
 
   const tracks = useMemo(
     () => [
