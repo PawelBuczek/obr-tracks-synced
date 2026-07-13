@@ -20,6 +20,7 @@ import {
   writeLibrarySortMode,
   writeLibrary,
 } from "./stateOperations"
+import { getMetadataSize } from "../infra/metadataHelper"
 
 const eventEmitter = new EventEmitter()
 
@@ -150,6 +151,9 @@ export async function mergeLibrary(tracks: Track[]) {
     if (outcome.changed) {
       push()
     }
+
+    const metadataSizeAfterWrite = await getMetadataSize()
+    console.log("metadataSizeAfterWriteLibrarty", metadataSizeAfterWrite)
   } catch (error) {
     // Keep local cache consistent with room state on validation failures.
     await refreshMetadataFromRoom()

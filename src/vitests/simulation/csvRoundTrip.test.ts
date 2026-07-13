@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   onMetadataChange: vi.fn(() => vi.fn()),
   updateMetadata: vi.fn(),
   updateMetadataWithCurrent: vi.fn(),
+  metadata: {},
 }))
 
 vi.mock("@owlbear-rodeo/sdk", () => ({
@@ -36,6 +37,7 @@ vi.mock("../../infra/firebase", () => ({
 vi.mock("../../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
   updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
+  getMetadataSize: vi.fn(() => Promise.resolve(JSON.stringify(mocks.metadata).length)),
 }))
 
 import { csvToTracks, TracksToCsv } from "../../io/csv"

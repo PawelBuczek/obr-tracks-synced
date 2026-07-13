@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
   updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
+  getMetadataSize: vi.fn(() => Promise.resolve(JSON.stringify(mocks.metadata).length)),
 }))
 
 vi.mock("@owlbear-rodeo/sdk", () => ({

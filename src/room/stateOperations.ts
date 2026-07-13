@@ -66,9 +66,6 @@ export async function writeLibrary(library: Track[]) {
 
   return updateMetadata({
     [libraryPath]: library,
-  }).then(async () => {
-  const metadataSizeAfterWrite = await getMetadataSize()
-  console.log("metadataSizeAfterWriteLibrarty", metadataSizeAfterWrite)
   })
 }
 

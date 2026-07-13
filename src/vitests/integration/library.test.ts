@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   updateMetadataWithCurrent: vi.fn(),
   stopPlayback: vi.fn(),
   removeTrackProgress: vi.fn((progress) => progress),
+  metadata: {},
 }))
 
 vi.mock("@owlbear-rodeo/sdk", () => ({
@@ -38,6 +39,7 @@ vi.mock("../../infra/firebase", () => ({
 vi.mock("../../infra/metadataHelper", () => ({
   updateMetadata: mocks.updateMetadata,
   updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
+  getMetadataSize: vi.fn(() => Promise.resolve(JSON.stringify(mocks.metadata).length)),
 }))
 
 vi.mock("../../room/mb", async () => {
