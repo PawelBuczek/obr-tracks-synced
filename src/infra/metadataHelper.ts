@@ -29,3 +29,13 @@ export function updateMetadata(update: Metadata) {
 
   return updateMetadataWithCurrent(() => update)
 }
+
+export async function getMetadataSize(): Promise<number> {
+  const metadata = await OBR.room.getMetadata()
+      if (!metadata) {
+        console.error("Failed to get metadata size: metadata is undefined")
+        return 0
+      }
+
+  return new TextEncoder().encode(JSON.stringify(metadata)).length
+}

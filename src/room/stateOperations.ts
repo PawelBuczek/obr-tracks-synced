@@ -1,7 +1,7 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
 import { removeTrackProgress, TrackProgressMap } from "../domain/playback"
 import { isSameTrack, Track } from "../domain/track"
-import { updateMetadata, updateMetadataWithCurrent } from "../infra/metadataHelper"
+import { getMetadataSize, updateMetadata, updateMetadataWithCurrent } from "../infra/metadataHelper"
 import { ObrError } from "../shared/errors"
 import { checkTrack } from "../shared/utils"
 import {
@@ -60,9 +60,15 @@ export function clearControlAndWriteProgress(progress: TrackProgressMap) {
   })
 }
 
-export function writeLibrary(library: Track[]) {
+export async function writeLibrary(library: Track[]) {
+  const metadataSizeBeforeWrite = await getMetadataSize()
+  console.log("metadataSizeBeforeWriteLibrarty", metadataSizeBeforeWrite)
+
   return updateMetadata({
     [libraryPath]: library,
+  }).then(async () => {
+  const metadataSizeAfterWrite = await getMetadataSize()
+  console.log("metadataSizeAfterWriteLibrarty", metadataSizeAfterWrite)
   })
 }
 
@@ -229,9 +235,13 @@ function buildMergedLibrary(
   }
 }
 
+//
 export async function mergeTracksIntoRoomLibrary(
   tracks: Track[],
 ): Promise<LibraryMutationOutcome> {
+  const metadataSizeBeforeWrite = await getMetadataSize()
+  console.log("metadataSizeBeforeWriteLibrarty", metadataSizeBeforeWrite)
+
   let outcome: LibraryMutationOutcome = {
     changed: false,
     library: [],
