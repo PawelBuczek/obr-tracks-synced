@@ -30,16 +30,20 @@ vi.mock("@owlbear-rodeo/sdk", () => ({
 
 import {
   clearControlAndWriteProgress,
+  writeControlAndProgress,
+} from "../../room/state/playbackWrites"
+import {
+  writeLibrarySortMode,
+  writeLibrary,
+  writeLibraryAndProgress,
+  writeLibraryAndProgressAndClearControl,
+} from "../../room/state/libraryWrites"
+import {
   clearRoomLibrary,
   deleteTrackFromRoomLibrary,
   mergeTracksIntoRoomLibrary,
   moveTrackInRoomLibrary,
-  writeLibrarySortMode,
-  writeControlAndProgress,
-  writeLibrary,
-  writeLibraryAndProgress,
-  writeLibraryAndProgressAndClearControl,
-} from "../../room/stateOperations"
+} from "../../room/state/libraryMutations"
 import {
   controlPath,
   LibrarySortMode,

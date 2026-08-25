@@ -4,8 +4,10 @@ import {
   clearRoomLibrary,
   deleteTrackFromRoomLibrary,
   mergeTracksIntoRoomLibrary,
+} from "../../room/state/libraryMutations"
+import {
   writeControlAndProgress,
-} from "../../room/stateOperations"
+} from "../../room/state/playbackWrites"
 import { controlPath, libraryPath, progressPath } from "../../room/metadataSchema"
 
 const mocks = vi.hoisted(() => ({
