@@ -1,7 +1,8 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
 import { removeTrackProgress, TrackProgressMap } from "../../domain/playback"
 import { isSameTrack, Track } from "../../domain/track"
-import { getMetadataSize, updateMetadataWithCurrent } from "../../infra/metadataHelper"
+import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
+import { ObrError } from "../../shared/errors"
 import {
   controlPath,
   extractControlMessage,
@@ -24,12 +25,15 @@ export interface LibraryMutationOutcome {
 
 export type LibraryMoveDirection = "up" | "down"
 
+const LIBRARY_METADATA_SIZE_CAP_BYTES = 6 * 1024
+
+function getLibraryMetadataSizeBytes(library: Track[]): number {
+  return new TextEncoder().encode(JSON.stringify({ [libraryPath]: library })).length
+}
+
 export async function mergeTracksIntoRoomLibrary(
   tracks: Track[],
 ): Promise<LibraryMutationOutcome> {
-  const metadataSizeBeforeWrite = await getMetadataSize()
-  console.log("metadataSizeBeforeWriteLibrarty", metadataSizeBeforeWrite)
-
   let outcome: LibraryMutationOutcome = {
     changed: false,
     library: [],
@@ -45,6 +49,15 @@ export async function mergeTracksIntoRoomLibrary(
       currentOrderMap,
       tracks,
     )
+    const isAddingNewTrack = nextLibrary.length > currentLibrary.length
+
+    if (
+      isAddingNewTrack &&
+      getLibraryMetadataSizeBytes(currentLibrary) > LIBRARY_METADATA_SIZE_CAP_BYTES
+    ) {
+      throw new ObrError("Cannot add track: library metadata is over 6 KB limit")
+    }
+
     const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
     const nextControl = getUpdatedControlTrack(currentMessage, nextLibrary)

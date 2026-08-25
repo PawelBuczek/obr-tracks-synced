@@ -222,6 +222,61 @@ beforeEach(() => {
     expect(getLibrary()).toEqual([existingTrack])
   })
 
+  it("rejects adding a new track when library metadata is already over 6 KB", async () => {
+    const oversizedTrack = {
+      title: "Huge Track",
+      url: "https://example.com/huge.mp3",
+      tags: ["x".repeat(7000)],
+    }
+
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [oversizedTrack],
+      [progressPath]: {},
+    })
+
+    await expect(
+      addTrackToLibrary({
+        title: "New Track",
+        url: "https://example.com/new-track.mp3",
+        tags: [],
+      }),
+    ).rejects.toThrow("library metadata is over 6 KB limit")
+
+    expect(mocks.updateMetadata).not.toHaveBeenCalled()
+    expect(getLibrary()).toEqual([oversizedTrack])
+  })
+
+  it("allows updating an existing track even when library metadata is over 6 KB", async () => {
+    const oversizedTrack = {
+      title: "Huge Track",
+      url: "https://example.com/huge.mp3",
+      tags: ["x".repeat(7000)],
+    }
+
+    mocks.getMetadata.mockResolvedValue({
+      [libraryPath]: [oversizedTrack],
+      [progressPath]: {},
+    })
+
+    await addTrackToLibrary({
+      title: "Updated Huge Track",
+      url: "https://example.com/huge.mp3",
+      tags: ["updated"],
+    })
+
+    expect(mocks.updateMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        [libraryPath]: [
+          {
+            title: "Updated Huge Track",
+            url: "https://example.com/huge.mp3",
+            tags: ["updated"],
+          },
+        ],
+      }),
+    )
+  })
+
 
   it("clears control metadata when clearing the library", async () => {
     mocks.getMetadata.mockResolvedValue({
