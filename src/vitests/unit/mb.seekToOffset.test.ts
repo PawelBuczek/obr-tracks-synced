@@ -37,8 +37,8 @@ vi.mock("../../infra/firebase", () => ({
   analytics: {},
 }))
 
-vi.mock("../../room/stateOperations", async () => {
-  const actual = await vi.importActual("../../room/stateOperations")
+vi.mock("../../room/state/playbackWrites", async () => {
+  const actual = await vi.importActual("../../room/state/playbackWrites")
   return {
     ...actual,
     writeControlAndProgress: mocks.writeControlAndProgress,

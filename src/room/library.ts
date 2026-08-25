@@ -17,9 +17,11 @@ import {
   deleteTrackFromRoomLibrary,
   mergeTracksIntoRoomLibrary,
   moveTrackInRoomLibrary,
+} from "./state/libraryMutations"
+import {
   writeLibrarySortMode,
   writeLibrary,
-} from "./stateOperations"
+} from "./state/libraryWrites"
 import { getMetadataSize } from "../infra/metadataHelper"
 
 const eventEmitter = new EventEmitter()
