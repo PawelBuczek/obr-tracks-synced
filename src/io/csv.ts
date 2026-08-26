@@ -1,4 +1,5 @@
 import Papa from "papaparse"
+import { formatTrackTag, getBuiltinTagId } from "../domain/tags"
 import { Track } from "../domain/track"
 import { checkTrack } from "../shared/utils"
 
@@ -63,7 +64,13 @@ export function csvToTracks(text: string): {
     const { fixed, validation } = checkTrack({
       title: r.title,
       url: r.url,
-      tags: r.tags === "" ? [] : r.tags.split(tagDelimiter),
+      tags:
+        r.tags === ""
+          ? []
+          : r.tags.split(tagDelimiter).map(tag => {
+              const resolvedId = getBuiltinTagId(tag)
+              return resolvedId ?? tag.trim()
+            }),
     })
 
     if (validation) {
@@ -95,7 +102,7 @@ export function TracksToCsv(tracks: Track[]): string {
     tracks.map<Row>(r => ({
       url: r.url,
       title: r.title,
-      tags: r.tags.join(tagDelimiter),
+      tags: r.tags.map(tag => formatTrackTag(tag)).join(tagDelimiter),
     })),
     options,
   )

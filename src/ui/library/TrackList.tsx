@@ -15,6 +15,7 @@ import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded"
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded"
 import Fuse from "fuse.js"
 import { useState } from "react"
+import { formatTrackTag } from "../../domain/tags"
 import { Track } from "../../domain/track"
 import { getTrackListClickAction } from "../../domain/trackListActions"
 import { deleteTrackFromLibrary } from "../../room/library"
@@ -76,7 +77,7 @@ function TrackCard(props: TrackCardProps) {
     <Chip
       key={i}
       variant="outlined"
-      label={t}
+      label={formatTrackTag(t)}
       color={
         matches?.find(m => m.key === "tags" && m.refIndex === i)
           ? "secondary"

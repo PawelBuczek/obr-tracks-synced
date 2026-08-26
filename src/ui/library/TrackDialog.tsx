@@ -10,6 +10,7 @@ import {
   TextField,
 } from "@mui/material"
 import { useEffect, useReducer } from "react"
+import { getBuiltinTagId, formatTrackTag } from "../../domain/tags"
 import { Track, emptyTrack } from "../../domain/track"
 import { addTrackToLibrary } from "../../room/library"
 import { checkTitle, checkTrack, checkUrl } from "../../shared/utils"
@@ -145,7 +146,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         track: {
           ...state.track,
-          tags: action.payload,
+          tags: action.payload.map(tag => getBuiltinTagId(tag) ?? tag),
         },
         readyToSave: false,
       }
@@ -226,18 +227,21 @@ export function TrackDialog(props: Props) {
             type="text"
           />
           <Autocomplete
-            value={state.track.tags}
+            value={state.track.tags.map(tag => formatTrackTag(tag))}
             multiple
             freeSolo
             onChange={(_, v) =>
-              dispatch({ type: ActionType.setTags, payload: v })
+              dispatch({
+                type: ActionType.setTags,
+                payload: v.map(value => String(value)),
+              })
             }
             options={tagSuggestions}
             renderValue={(value, getItemProps) =>
               value.map((option, index) => (
                 <Chip
                   variant="outlined"
-                  label={option}
+                  label={String(option)}
                   {...getItemProps({ index })}
                 />
               ))

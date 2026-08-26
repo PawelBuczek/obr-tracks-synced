@@ -1,6 +1,8 @@
 # Metadata Redesign Implementation Plan
 
-Status: **implementation plan**
+Status: **all verified through the current implementation; later redesign chunks remain pending**
+
+Validation note: the current repo state has been fully verified with the full project checks: `npm run test:all`, `npm run build`, and `npm run test:e2e` all pass. The plan is therefore kept accurate to the current implementation, while later redesign chunks beyond the already-validated baseline remain explicitly pending.
 
 This plan implements the decisions in [metadata-redesign-explanation.md](metadata-redesign-explanation.md):
 
@@ -26,7 +28,7 @@ This plan implements the decisions in [metadata-redesign-explanation.md](metadat
 7. Built-in tag array positions are stable protocol IDs. Reordering or reusing an existing built-in ID is forbidden.
 8. The library payload remains capped at 6 KB when adding tracks.
 
-## Chunk 0: Lock the baseline and fixtures
+## Chunk 0: Lock the baseline and fixtures — ✅ Completed
 
 **Purpose:** establish a known starting point before changing the schema.
 
@@ -42,7 +44,7 @@ npm run test:all
 npm run build
 ```
 
-## Chunk 1: Canonical URL identity
+## Chunk 1: Canonical URL identity — ✅ Completed
 
 **Files/surfaces:** `src/domain/track.ts`, `src/shared/utils.ts`, room schema and mutation policy callers, CSV import, UI track creation paths.
 
@@ -68,7 +70,7 @@ npx vitest run src/vitests/unit/utils.test.ts src/vitests/unit/playback.test.ts 
 npm run build
 ```
 
-## Chunk 2: New track and metadata schema
+## Chunk 2: New track and metadata schema — ✅ Completed
 
 **Files/surfaces:** `src/domain/track.ts`, `src/room/metadataSchema.ts`, `src/domain/playback.ts`, schema tests, all track fixtures.
 
@@ -96,7 +98,7 @@ npx vitest run src/vitests/unit/metadataSchema.test.ts src/vitests/unit/playback
 npm run build
 ```
 
-## Chunk 3: Static built-in tags and numeric tag resolution
+## Chunk 3: Static built-in tags and numeric tag resolution — ✅ Completed
 
 **Files/surfaces:** new `src/domain/tags.ts`, `src/shared/utils.ts`, `src/io/csv.ts`, library dialog/search/list components, metadata schema tests.
 
@@ -123,7 +125,7 @@ npx vitest run src/vitests/unit/metadataSchema.test.ts src/vitests/unit/csv.test
 npm run test:all
 ```
 
-## Chunk 4: Remove shared order metadata
+## Chunk 4: Remove shared order metadata — ✅ Completed
 
 **Files/surfaces:** `src/room/state/libraryMutationPolicy.ts`, `src/room/state/libraryMutations.ts`, `src/room/metadataSchema.ts`, `src/ui/library/TrackList.tsx`, ordering tests.
 

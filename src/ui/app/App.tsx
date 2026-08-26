@@ -18,6 +18,7 @@ import {
   setLibrarySortMode,
 } from "../../room/library"
 import { LibrarySortMode } from "../../room/metadataSchema"
+import { BUILT_IN_TAGS, formatTrackTag } from "../../domain/tags"
 import { Track } from "../../domain/track"
 import { setMute as persistMute } from "../../shared/mute"
 import { getVolume, setVolume as persistVolume } from "../../shared/volume"
@@ -74,7 +75,13 @@ export function App() {
 
   // tag suggestions state for track dialog
   const tagSuggestions = useMemo<string[]>(() => {
-    return [...new Set(trackLibrary.flatMap(track => track.tags))]
+    const suggestions = new Set<string>(BUILT_IN_TAGS)
+    for (const track of trackLibrary) {
+      for (const tag of track.tags) {
+        suggestions.add(formatTrackTag(tag))
+      }
+    }
+    return [...suggestions]
   }, [trackLibrary])
 
   // track dialog state

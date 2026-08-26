@@ -1,28 +1,38 @@
+export type TrackTag = number | string
+
 export interface Track {
   title: string
   url: string
-  tags: string[]
+  tags: TrackTag[]
+  offset?: number
+}
+
+export function canonicalizeTrackUrl(url: string): string {
+  const trimmed = url.trim().replace(/\s+/g, "").toLowerCase()
+
+  if (!trimmed) {
+    return trimmed
+  }
+
+  try {
+    const fixed = new URL(trimmed)
+
+    if (fixed.hostname.endsWith("dropbox.com")) {
+      fixed.searchParams.set("dl", "1")
+      fixed.hostname = "dl.dropboxusercontent.com"
+      fixed.hash = ""
+      return fixed.toString().toLowerCase()
+    }
+
+    fixed.hash = ""
+    return fixed.toString().toLowerCase()
+  } catch {
+    return trimmed
+  }
 }
 
 export function isSameTrack(left: Track, right: Track): boolean {
-  try {
-    const leftUrl = new URL(left.url)
-    const rightUrl = new URL(right.url)
-
-    if (leftUrl.hostname.endsWith("dropbox.com")) {
-      leftUrl.searchParams.set("dl", "1")
-      leftUrl.hostname = "dl.dropboxusercontent.com"
-    }
-
-    if (rightUrl.hostname.endsWith("dropbox.com")) {
-      rightUrl.searchParams.set("dl", "1")
-      rightUrl.hostname = "dl.dropboxusercontent.com"
-    }
-
-    return leftUrl.toString() === rightUrl.toString()
-  } catch {
-    return left.url === right.url
-  }
+  return canonicalizeTrackUrl(left.url) === canonicalizeTrackUrl(right.url)
 }
 
 export function toString(track: Track): string {
@@ -35,5 +45,6 @@ export function emptyTrack(): Track {
     title: "",
     url: "",
     tags: [],
+    offset: 0,
   }
 }

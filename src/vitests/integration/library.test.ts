@@ -104,11 +104,11 @@ beforeEach(() => {
 
     await addTrackToLibrary(track)
 
-    expect(getLibrary()).toContainEqual(track)
+    expect(getLibrary()).toContainEqual({ ...track, offset: 0 })
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [track],
+        [libraryPath]: [{ ...track, offset: 0 }],
       }),
     )
   })
@@ -133,11 +133,11 @@ beforeEach(() => {
 
     await addTrackToLibrary(updatedTrack)
 
-    expect(getLibrary()).toContainEqual(updatedTrack)
+    expect(getLibrary()).toContainEqual({ ...updatedTrack, offset: 0 })
     expect(getLibrary()).toHaveLength(1)
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [updatedTrack],
+        [libraryPath]: [{ ...updatedTrack, offset: 0 }],
       }),
     )
   })
@@ -181,15 +181,16 @@ beforeEach(() => {
         [libraryPath]: [
           {
             title: "Updated Track",
-            url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
-            tags: ["updated", "focus"],
+            url: playingTrack.url,
+            tags: ["updated", 3],
+            offset: 0,
           },
         ],
         [controlPath]: expect.objectContaining({
           track: {
             title: "Updated Track",
             url: playingTrack.url,
-            tags: ["updated", "focus"],
+            tags: ["updated", 3],
           },
         }),
       }),
@@ -219,7 +220,7 @@ beforeEach(() => {
     )
 
     expect(mocks.updateMetadata).not.toHaveBeenCalled()
-    expect(getLibrary()).toEqual([existingTrack])
+    expect(getLibrary()).toEqual([{ ...existingTrack, offset: 0 }])
   })
 
   it("rejects adding a new track when library metadata is already over 6 KB", async () => {
@@ -243,7 +244,7 @@ beforeEach(() => {
     ).rejects.toThrow("library metadata is over 6 KB limit")
 
     expect(mocks.updateMetadata).not.toHaveBeenCalled()
-    expect(getLibrary()).toEqual([oversizedTrack])
+    expect(getLibrary()).toEqual([{ ...oversizedTrack, offset: 0 }])
   })
 
   it("allows updating an existing track even when library metadata is over 6 KB", async () => {
@@ -271,6 +272,7 @@ beforeEach(() => {
             title: "Updated Huge Track",
             url: "https://example.com/huge.mp3",
             tags: ["updated"],
+            offset: 0,
           },
         ],
       }),
@@ -389,7 +391,7 @@ beforeEach(() => {
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
         [libraryPath]: [
-          playingTrack,
+          { ...playingTrack, offset: 0 },
         ],
       }),
     )

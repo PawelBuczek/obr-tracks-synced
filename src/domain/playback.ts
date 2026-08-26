@@ -24,11 +24,12 @@ export function prepareTrackSelection(
   currentOffset?: number,
   currentAction?: Action,
 ): { progressMap: TrackProgressMap; offset: number } {
+  const canonicalTrackUrl = track.url
   const shouldSaveCurrentTrackProgress =
     currentTrack !== undefined &&
     currentOffset !== undefined &&
     currentAction === Action.Play &&
-    currentTrack.url !== track.url
+    currentTrack.url !== canonicalTrackUrl
 
   const nextProgressMap = shouldSaveCurrentTrackProgress
     ? { ...progressMap, [currentTrack.url]: currentOffset }
@@ -36,7 +37,7 @@ export function prepareTrackSelection(
 
   return {
     progressMap: nextProgressMap,
-    offset: nextProgressMap[track.url] ?? 0,
+    offset: nextProgressMap[canonicalTrackUrl] ?? 0,
   }
 }
 

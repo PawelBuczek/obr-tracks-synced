@@ -47,7 +47,6 @@ import {
 import {
   controlPath,
   LibrarySortMode,
-  libraryOrderPath,
   libraryPath,
   librarySortModePath,
   progressPath,
@@ -265,6 +264,7 @@ describe("room state operations", () => {
         title: "New",
         url: baseTrack.url,
         tags: ["two"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
@@ -321,8 +321,9 @@ describe("room state operations", () => {
     expect(outcome.library).toEqual([
       {
         title: "New Title",
-        url: shareUrl,
+        url: directUrl,
         tags: ["new"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
@@ -370,7 +371,7 @@ describe("room state operations", () => {
         track: {
           title: "Updated Title",
           url: playingTrack.url,
-          tags: ["updated", "focus"],
+          tags: ["updated", 3],
         },
       }),
     )
@@ -436,7 +437,7 @@ describe("room state operations", () => {
     expect(outcome.shouldStopPlayback).toBe(false)
   })
 
-  it("assigns sequential order to new tracks and preserves order for same-url updates", async () => {
+  it("keeps insertion order for merged tracks and preserves existing array order when updating same-url tracks", async () => {
     const first = {
       title: "First",
       url: "https://example.com/first.mp3",
@@ -450,17 +451,15 @@ describe("room state operations", () => {
 
     mocks.metadata = {
       [libraryPath]: [],
-      [libraryOrderPath]: {},
       [progressPath]: {},
     }
 
     await mergeTracksIntoRoomLibrary([first, second])
 
-    expect(mocks.metadata[libraryPath]).toEqual([first, second])
-    expect(mocks.metadata[libraryOrderPath]).toEqual({
-      [first.url]: 0,
-      [second.url]: 1,
-    })
+    expect(mocks.metadata[libraryPath]).toEqual([
+      { ...first, offset: 0 },
+      { ...second, offset: 0 },
+    ])
 
     const updatedFirst = {
       ...first,
@@ -470,14 +469,13 @@ describe("room state operations", () => {
 
     await mergeTracksIntoRoomLibrary([updatedFirst])
 
-    expect(mocks.metadata[libraryPath]).toEqual([updatedFirst, second])
-    expect(mocks.metadata[libraryOrderPath]).toEqual({
-      [first.url]: 0,
-      [second.url]: 1,
-    })
+    expect(mocks.metadata[libraryPath]).toEqual([
+      { ...updatedFirst, tags: [3], offset: 0 },
+      { ...second, offset: 0 },
+    ])
   })
 
-  it("keeps sparse order values after delete and assigns next add using max+1", async () => {
+  it("removes the target track from the library array without keeping a sidecar order map", async () => {
     const first = {
       title: "First",
       url: "https://example.com/first.mp3",
@@ -496,35 +494,18 @@ describe("room state operations", () => {
 
     mocks.metadata = {
       [libraryPath]: [first, second, third],
-      [libraryOrderPath]: {
-        [first.url]: 0,
-        [second.url]: 1,
-        [third.url]: 2,
-      },
       [progressPath]: {},
     }
 
     await deleteTrackFromRoomLibrary(second)
 
-    expect(mocks.metadata[libraryPath]).toEqual([first, third])
-    expect(mocks.metadata[libraryOrderPath]).toEqual({
-      [first.url]: 0,
-      [third.url]: 2,
-    })
-
-    const fourth = {
-      title: "Fourth",
-      url: "https://example.com/fourth.mp3",
-      tags: [],
-    }
-
-    await mergeTracksIntoRoomLibrary([fourth])
-
-    expect((mocks.metadata[libraryOrderPath] as Record<string, number>)[fourth.url]).toBe(3)
-    expect(mocks.metadata[libraryPath]).toEqual([first, third, fourth])
+    expect(mocks.metadata[libraryPath]).toEqual([
+      { ...first, offset: 0 },
+      { ...third, offset: 0 },
+    ])
   })
 
-  it("moves tracks by swapping adjacent order values", async () => {
+  it("moves tracks by swapping adjacent entries in the library array", async () => {
     const first = {
       title: "First",
       url: "https://example.com/first.mp3",
@@ -543,21 +524,24 @@ describe("room state operations", () => {
 
     mocks.metadata = {
       [libraryPath]: [first, second, third],
-      [libraryOrderPath]: {
-        [first.url]: 0,
-        [second.url]: 1,
-        [third.url]: 2,
-      },
       [progressPath]: {},
     }
 
     const moveUp = await moveTrackInRoomLibrary(second, "up")
     expect(moveUp.changed).toBe(true)
-    expect(moveUp.library).toEqual([second, first, third])
+    expect(moveUp.library).toEqual([
+      { ...second, offset: 0 },
+      { ...first, offset: 0 },
+      { ...third, offset: 0 },
+    ])
 
     const moveDown = await moveTrackInRoomLibrary(second, "down")
     expect(moveDown.changed).toBe(true)
-    expect(moveDown.library).toEqual([first, second, third])
+    expect(moveDown.library).toEqual([
+      { ...first, offset: 0 },
+      { ...second, offset: 0 },
+      { ...third, offset: 0 },
+    ])
   })
 
   it("writes library sort mode metadata", async () => {

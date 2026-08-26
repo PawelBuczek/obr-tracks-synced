@@ -6,12 +6,10 @@ import { ObrError } from "../shared/errors"
 import { stopPlayback } from "./mb"
 import {
   extractLibrary,
-  extractLibraryOrderMap,
   extractLibrarySortMode,
   libraryPath,
   librarySortModePath,
   LibrarySortMode,
-  sortLibraryByOrder,
 } from "./metadataSchema"
 import {
   clearRoomLibrary,
@@ -60,9 +58,8 @@ function runWhenRoomReady(): Promise<void> {
 
 function readMetadata(metadata: Metadata) {
   const library = extractLibrary(metadata)
-  const orderMap = extractLibraryOrderMap(metadata)
   cachedSortMode = extractLibrarySortMode(metadata)
-  cachedLibrary = sortLibraryByOrder(library, orderMap)
+  cachedLibrary = library
 }
 
 async function refreshMetadataFromRoom() {

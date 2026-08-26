@@ -147,13 +147,13 @@ describe("multi-client room sync simulation", () => {
   it("keeps four clients in sync and gives a late joiner the current playback state", async () => {
     const trackOne = {
       title: "Shared Track One",
-      url: "https://www.dropbox.com/scl/fi/example/track-one.mp3?dl=0",
-      tags: ["ambient"],
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/track-one.mp3?dl=1",
+      tags: [0],
     }
     const trackTwo = {
       title: "Shared Track Two",
-      url: "https://www.dropbox.com/scl/fi/example/track-two.mp3?dl=0",
-      tags: ["battle"],
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/track-two.mp3?dl=1",
+      tags: [1],
     }
 
     roomMocks.state.metadata = {
@@ -251,8 +251,8 @@ describe("multi-client room sync simulation", () => {
   it("lets a late joiner recover the current playback state and pause from it", async () => {
     const track = {
       title: "Recovery Track",
-      url: "https://www.dropbox.com/scl/fi/example/recovery.mp3?dl=0",
-      tags: ["ambient"],
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/recovery.mp3?dl=1",
+      tags: [0],
     }
 
     roomMocks.state.metadata = {
@@ -303,13 +303,13 @@ describe("multi-client room sync simulation", () => {
   it("reloads to the latest playback state after reconnecting", async () => {
     const firstTrack = {
       title: "First Track",
-      url: "https://www.dropbox.com/scl/fi/example/first.mp3?dl=0",
-      tags: ["ambient"],
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/first.mp3?dl=1",
+      tags: [0],
     }
     const secondTrack = {
       title: "Second Track",
-      url: "https://www.dropbox.com/scl/fi/example/second.mp3?dl=0",
-      tags: ["battle"],
+      url: "https://dl.dropboxusercontent.com/scl/fi/example/second.mp3?dl=1",
+      tags: [1],
     }
 
     roomMocks.state.metadata = {

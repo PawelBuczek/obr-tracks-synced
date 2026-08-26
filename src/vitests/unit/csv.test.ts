@@ -29,12 +29,14 @@ describe("csv import and export", () => {
       {
         title: "Track A",
         url: "https://example.com/a.mp3",
-        tags: ["ambient", "calm"],
+        tags: [0, 2],
+        offset: 0,
       },
       {
         title: "Track B",
         url: "https://example.com/b.mp3",
         tags: [],
+        offset: 0,
       },
     ])
   })
@@ -84,12 +86,14 @@ describe("csv import and export", () => {
       {
         title: "Alpha",
         url: "https://example.com/alpha.mp3",
-        tags: ["one", "two"],
+        tags: [1, 2],
+        offset: 0,
       },
       {
         title: "Beta",
         url: "https://example.com/beta.mp3",
         tags: [],
+        offset: 0,
       },
     ]
 

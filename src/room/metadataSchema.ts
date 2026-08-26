@@ -1,15 +1,12 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
 import { Action, TrackProgressMap } from "../domain/playback"
-import { Track } from "../domain/track"
+import { canonicalizeTrackUrl, Track } from "../domain/track"
 import { key } from "../shared/key"
 
 export const controlPath = key("control")
 export const progressPath = key("progress")
 export const libraryPath = key("library")
-export const libraryOrderPath = key("libraryOrder")
 export const librarySortModePath = key("librarySortMode")
-
-export type LibraryOrderMap = Record<string, number>
 
 export enum LibrarySortMode {
   NotSorted = "not_sorted",
@@ -23,7 +20,7 @@ export interface RoomControlMessage {
   action: Action
   offset: number
   duration: number
-  track: Track
+  track: Omit<Track, "offset">
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -32,24 +29,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
-}
-
-export function extractLibraryOrderMap(metadata: Metadata): LibraryOrderMap {
-  const value = metadata[libraryOrderPath]
-
-  if (!isRecord(value)) {
-    return {}
-  }
-
-  const orderMap: LibraryOrderMap = {}
-
-  Object.entries(value).forEach(([trackUrl, order]) => {
-    if (isFiniteNumber(order) && order >= 0) {
-      orderMap[trackUrl] = order
-    }
-  })
-
-  return orderMap
 }
 
 export function extractLibrarySortMode(metadata: Metadata): LibrarySortMode {
@@ -66,22 +45,6 @@ export function extractLibrarySortMode(metadata: Metadata): LibrarySortMode {
   return LibrarySortMode.NotSorted
 }
 
-export function sortLibraryByOrder(
-  library: Track[],
-  orderMap: LibraryOrderMap,
-): Track[] {
-  return [...library].sort((left, right) => {
-    const leftOrder = orderMap[left.url] ?? 0
-    const rightOrder = orderMap[right.url] ?? 0
-
-    if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder
-    }
-
-    return left.title.localeCompare(right.title)
-  })
-}
-
 function parseTrack(value: unknown): Track | undefined {
   if (!isRecord(value)) {
     return undefined
@@ -90,19 +53,35 @@ function parseTrack(value: unknown): Track | undefined {
   const title = value.title
   const url = value.url
   const tags = value.tags
+  const offsetValue = value.offset ?? 0
 
   if (typeof title !== "string" || typeof url !== "string" || !Array.isArray(tags)) {
     return undefined
   }
 
-  if (!tags.every(tag => typeof tag === "string")) {
+  const tagIds = tags
+    .map(tag =>
+      typeof tag === "number"
+        ? Number.isInteger(tag) && tag >= 0
+          ? tag
+          : undefined
+        : typeof tag === "string" && tag.trim()
+          ? tag.trim()
+          : undefined,
+    )
+    .filter((tag): tag is number | string => tag !== undefined)
+
+  const offset = Number(offsetValue)
+
+  if (!Number.isFinite(offset) || offset < 0) {
     return undefined
   }
 
   const fixed = {
     title: title.trim(),
-    url: url.trim(),
-    tags: tags.map(tag => tag.trim()).filter(tag => tag),
+    url: canonicalizeTrackUrl(url.trim()),
+    tags: tagIds,
+    offset,
   }
 
   if (!fixed.title || !fixed.url) {
@@ -135,7 +114,7 @@ export function extractProgressMap(metadata: Metadata): TrackProgressMap {
 
   Object.entries(value).forEach(([trackUrl, offset]) => {
     if (isFiniteNumber(offset) && offset >= 0) {
-      progress[trackUrl] = offset
+      progress[canonicalizeTrackUrl(trackUrl)] = offset
     }
   })
 
@@ -156,17 +135,19 @@ export function extractControlMessage(
   const action = value.action
   const offset = value.offset
   const duration = value.duration
-  const track = parseTrack(value.track)
+  const parsedTrack = parseTrack(value.track)
 
   if (
     typeof id !== "string" ||
     (action !== Action.Play && action !== Action.Pause) ||
     !isFiniteNumber(offset) ||
     !isFiniteNumber(duration) ||
-    track === undefined
+    parsedTrack === undefined
   ) {
     return undefined
   }
+
+  const { offset: _ignoredOffset, ...track } = parsedTrack
 
   if (
     typeof timeValue !== "string" &&

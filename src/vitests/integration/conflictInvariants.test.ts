@@ -180,7 +180,7 @@ describe("conflict invariants", () => {
       },
     )
 
-    expect(mocks.metadata[libraryPath]).toEqual([survivorTrack])
+    expect(mocks.metadata[libraryPath]).toEqual([{ ...survivorTrack, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toEqual({
       [survivorTrack.url]: 0,

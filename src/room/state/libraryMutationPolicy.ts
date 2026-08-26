@@ -1,14 +1,14 @@
 import { ObrError } from "../../shared/errors"
 import { checkTrack } from "../../shared/utils"
 import { isSameTrack, Track } from "../../domain/track"
-import { RoomControlMessage, sortLibraryByOrder } from "../metadataSchema"
+import { RoomControlMessage } from "../metadataSchema"
 
-function sameTags(left: string[], right: string[]): boolean {
+function sameTags(left: Array<number | string>, right: Array<number | string>): boolean {
   if (left.length !== right.length) {
     return false
   }
 
-  return left.every((tag, index) => tag === right[index])
+  return left.every((tag, index) => String(tag) === String(right[index]))
 }
 
 export function getUpdatedControlTrack(
@@ -45,30 +45,15 @@ export function getUpdatedControlTrack(
   }
 }
 
-function getNextLibraryOrder(orderMap: Record<string, number>): number {
-  const values = Object.values(orderMap)
-
-  if (values.length === 0) {
-    return 0
-  }
-
-  return Math.max(...values) + 1
-}
-
 export function buildMergedLibrary(
   currentLibrary: Track[],
-  currentOrderMap: Record<string, number>,
   tracks: Track[],
 ): {
   library: Track[]
-  orderMap: Record<string, number>
 } {
   const updatedLibrary = currentLibrary.map(track => ({
     ...track,
   }))
-  const allTracks: Track[] = [...updatedLibrary]
-  const nextOrderMap: Record<string, number> = { ...currentOrderMap }
-  let nextOrder = getNextLibraryOrder(nextOrderMap)
 
   tracks.forEach(track => {
     const { fixed, validation } = checkTrack(track)
@@ -81,7 +66,7 @@ export function buildMergedLibrary(
       isSameTrack(currentTrack, fixed),
     )
 
-    const hasDuplicateTitle = allTracks.some(
+    const hasDuplicateTitle = updatedLibrary.some(
       currentTrack =>
         currentTrack.title === fixed.title &&
         !isSameTrack(currentTrack, fixed),
@@ -97,18 +82,16 @@ export function buildMergedLibrary(
       updatedLibrary[existingIndex] = {
         ...updatedLibrary[existingIndex],
         title: fixed.title,
+        url: fixed.url,
         tags: fixed.tags,
+        offset: updatedLibrary[existingIndex].offset ?? 0,
       }
     } else {
-      nextOrderMap[fixed.url] = nextOrder
-      nextOrder += 1
       updatedLibrary.push(fixed)
-      allTracks.push(fixed)
     }
   })
 
   return {
-    library: sortLibraryByOrder(updatedLibrary, nextOrderMap),
-    orderMap: nextOrderMap,
+    library: updatedLibrary,
   }
 }

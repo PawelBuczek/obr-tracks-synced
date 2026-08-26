@@ -4,30 +4,29 @@ import {
   controlPath,
   extractControlMessage,
   extractLibrary,
-  extractLibraryOrderMap,
   extractLibrarySortMode,
   extractProgressMap,
   LibrarySortMode,
   libraryPath,
-  libraryOrderPath,
   librarySortModePath,
   progressPath,
-  sortLibraryByOrder,
 } from "../../room/metadataSchema"
 
 describe("metadata schema", () => {
-  it("extracts only valid tracks from library metadata", () => {
+  it("extracts only valid numeric-tag tracks from library metadata", () => {
     const metadata = {
       [libraryPath]: [
         {
           title: "Valid",
           url: "https://example.com/ok.mp3",
-          tags: ["ambience"],
+          tags: [2, 7],
+          offset: 12,
         },
         {
           title: "",
           url: "   ",
-          tags: ["bad"],
+          tags: [99],
+          offset: -1,
         },
         "bad-entry",
       ],
@@ -37,7 +36,8 @@ describe("metadata schema", () => {
       {
         title: "Valid",
         url: "https://example.com/ok.mp3",
-        tags: ["ambience"],
+        tags: [2, 7],
+        offset: 12,
       },
     ])
   })
@@ -56,42 +56,26 @@ describe("metadata schema", () => {
     })
   })
 
-  it("extracts library order map and ignores invalid values", () => {
+  it("keeps the library array order as the canonical ordering", () => {
     const metadata = {
-      [libraryOrderPath]: {
-        "https://example.com/first.mp3": 0,
-        "https://example.com/second.mp3": 2,
-        "https://example.com/bad.mp3": -1,
-        "https://example.com/string.mp3": "3",
-      },
+      [libraryPath]: [
+        {
+          title: "First",
+          url: "https://example.com/first.mp3",
+          tags: [],
+        },
+        {
+          title: "Second",
+          url: "https://example.com/second.mp3",
+          tags: [],
+        },
+      ],
     }
 
-    expect(extractLibraryOrderMap(metadata)).toEqual({
-      "https://example.com/first.mp3": 0,
-      "https://example.com/second.mp3": 2,
-    })
-  })
-
-  it("sorts library by ascending order", () => {
-    const library = [
-      {
-        title: "Second",
-        url: "https://example.com/second.mp3",
-        tags: [],
-      },
-      {
-        title: "First",
-        url: "https://example.com/first.mp3",
-        tags: [],
-      },
-    ]
-
-    const sorted = sortLibraryByOrder(library, {
-      "https://example.com/second.mp3": 1,
-      "https://example.com/first.mp3": 0,
-    })
-
-    expect(sorted.map(track => track.title)).toEqual(["First", "Second"])
+    expect(extractLibrary(metadata).map(track => track.title)).toEqual([
+      "First",
+      "Second",
+    ])
   })
 
   it("extracts persisted library sort mode with not-sorted fallback", () => {
@@ -110,7 +94,7 @@ describe("metadata schema", () => {
     ).toEqual(LibrarySortMode.Descending)
   })
 
-  it("extracts a valid control message", () => {
+  it("extracts a valid control message without a track offset", () => {
     const metadata = {
       [controlPath]: {
         id: "abc",
@@ -121,7 +105,8 @@ describe("metadata schema", () => {
         track: {
           title: "Valid",
           url: "https://example.com/ok.mp3",
-          tags: [],
+          tags: [2, 5],
+          offset: 7,
         },
       },
     }
@@ -136,9 +121,10 @@ describe("metadata schema", () => {
       track: {
         title: "Valid",
         url: "https://example.com/ok.mp3",
-        tags: [],
+        tags: [2, 5],
       },
     })
+    expect("offset" in (message?.track ?? {})).toBe(false)
     expect(message?.time instanceof Date).toBe(true)
   })
 

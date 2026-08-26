@@ -1,4 +1,5 @@
-import { Track } from "../domain/track"
+import { resolveTagId } from "../domain/tags"
+import { canonicalizeTrackUrl, Track } from "../domain/track"
 import { now } from "../infra/time"
 import { ObrError } from "./errors"
 
@@ -28,19 +29,11 @@ export function getPlaybackTime(
 
 // convert urls into direct downloadable urls, currently only supports dropbox
 export function convertToDirectDownloadable(url: string): string {
-  let urlObject: URL
   try {
-    urlObject = new URL(url)
+    return canonicalizeTrackUrl(url)
   } catch {
     throw new ObrError(`Failed to convert, invalid url: ${url}`)
   }
-
-  if (urlObject.hostname.endsWith("dropbox.com")) {
-    urlObject.searchParams.set("dl", "1")
-    urlObject.hostname = "dl.dropboxusercontent.com"
-    return urlObject.href
-  }
-  return url
 }
 
 export interface CheckResult<F, V> {
@@ -48,12 +41,35 @@ export interface CheckResult<F, V> {
   validation?: V
 }
 
+export function normalizeTrackTags(tags: Array<number | string>): Array<number | string> {
+  return tags
+    .map(tag => {
+      if (typeof tag === "number") {
+        return Number.isInteger(tag) && tag >= 0 ? tag : undefined
+      }
+
+      const normalized = tag.trim()
+      if (!normalized) {
+        return undefined
+      }
+
+      return resolveTagId(normalized) ?? normalized.toLowerCase()
+    })
+    .filter((tag): tag is number | string => tag !== undefined && tag !== "")
+}
+
+export function normalizeTrackOffset(offset: number | string | undefined): number {
+  const value = typeof offset === "number" ? offset : Number(offset ?? 0)
+  return Number.isFinite(value) && value >= 0 ? value : 0
+}
+
 export function cleanTrack(track: Track): Track {
   return {
     ...track,
     title: track.title.trim(),
-    url: track.url.replace(/\s/g, "").toLowerCase(),
-    tags: track.tags.filter(tag => tag).map(tag => tag.trim()),
+    url: canonicalizeTrackUrl(track.url),
+    tags: normalizeTrackTags(track.tags),
+    offset: normalizeTrackOffset(track.offset),
   }
 }
 
@@ -63,7 +79,7 @@ export function checkTitle(title: string): CheckResult<string, string> {
 }
 
 export function checkUrl(url: string): CheckResult<string, string> {
-  const fixed = url.trim()
+  const fixed = canonicalizeTrackUrl(url)
 
   try {
     const urlObject = new URL(fixed)
@@ -80,14 +96,15 @@ export function checkUrl(url: string): CheckResult<string, string> {
   return { fixed }
 }
 
-export function checkTags(tags: string[]): CheckResult<string[], string> {
-  return { fixed: tags.filter(t => t).map(t => t.trim()) }
+export function checkTags(tags: Array<number | string>): CheckResult<Array<number | string>, string> {
+  return { fixed: normalizeTrackTags(tags) }
 }
 
 export interface TrackValidation {
   titleValidation?: string
   urlValidation?: string
   tagsValidation?: string
+  offsetValidation?: string
 }
 
 export function checkTrack(
@@ -97,12 +114,16 @@ export function checkTrack(
   const { validation: titleValidation } = checkTitle(fixed.title)
   const { validation: urlValidation } = checkUrl(fixed.url)
   const { validation: tagsValidation } = checkTags(fixed.tags)
+  const offsetValidation =
+    Number.isFinite(fixed.offset ?? 0) && (fixed.offset ?? 0) >= 0
+      ? undefined
+      : "Offset must be a finite non-negative number"
 
   return {
     fixed,
     validation:
-      titleValidation || urlValidation || tagsValidation
-        ? { titleValidation, urlValidation, tagsValidation }
+      titleValidation || urlValidation || tagsValidation || offsetValidation
+        ? { titleValidation, urlValidation, tagsValidation, offsetValidation }
         : undefined,
   }
 }

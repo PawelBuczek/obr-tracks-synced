@@ -86,6 +86,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Renamed",
         url: original.url,
         tags: ["b"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -161,6 +162,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Renamed",
         url: original.url,
         tags: ["b"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -215,6 +217,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Renamed Twice",
         url: directUrlTrack.url,
         tags: ["final"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -288,6 +291,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Renamed A",
         url: "https://example.com/a.mp3",
         tags: ["renamed"],
+        offset: 0,
       },
     ])
   })
@@ -335,8 +339,9 @@ describe("dual-GM conflict ordering", () => {
     expect(mocks.metadata[libraryPath]).toEqual([
       {
         title: "Dropbox Updated",
-        url: shareUrlTrack.url,
+        url: directUrlTrack.url,
         tags: ["new"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -425,6 +430,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Rename Two",
         url: initial.url,
         tags: ["two"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({
@@ -457,8 +463,9 @@ describe("dual-GM conflict ordering", () => {
     expect(mocks.metadata[libraryPath]).toEqual([
       {
         title: "Second Title",
-        url: shareUrl,
+        url: directUrl,
         tags: ["b"],
+        offset: 0,
       },
     ])
   })
@@ -493,6 +500,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Occupied",
         url: "https://example.com/new.mp3",
         tags: ["new"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -536,6 +544,7 @@ describe("dual-GM conflict ordering", () => {
         title: "Track",
         url: "https://example.com/track.mp3",
         tags: ["new"],
+        offset: 0,
       },
     ])
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -752,7 +761,7 @@ describe("dual-GM conflict ordering", () => {
       },
     )
 
-    expect(mocks.metadata[libraryPath]).toEqual([trackB])
+    expect(mocks.metadata[libraryPath]).toEqual([{ ...trackB, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toEqual({
       [trackB.url]: 0,

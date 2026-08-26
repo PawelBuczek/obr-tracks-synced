@@ -22,12 +22,12 @@ export { Action }
 
 export type Message = RoomControlMessage
 
-function sameTags(left: string[], right: string[]): boolean {
+function sameTags(left: Array<number | string>, right: Array<number | string>): boolean {
   if (left.length !== right.length) {
     return false
   }
 
-  return left.every((tag, index) => tag === right[index])
+  return left.every((tag, index) => String(tag) === String(right[index]))
 }
 
 function isSameMessage(

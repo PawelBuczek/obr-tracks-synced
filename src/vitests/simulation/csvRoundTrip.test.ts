@@ -1,4 +1,16 @@
-import { describe, expect, it, vi, beforeEach } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { getBuiltinTagId } from "../../domain/tags"
+import { canonicalizeTrackUrl, Track } from "../../domain/track"
+import { csvToTracks, TracksToCsv } from "../../io/csv"
+import fixtureCsv from "./fixtures/large-import-100-tracks.csv?raw"
+import {
+  addTrackToLibrary,
+  clearLibrary,
+  getLibrary,
+  mergeLibrary,
+} from "../../room/library"
+import { key } from "../../shared/key"
 
 const mocks = vi.hoisted(() => ({
   getMetadata: vi.fn(() => Promise.resolve({})),
@@ -40,18 +52,18 @@ vi.mock("../../infra/metadataHelper", () => ({
   getMetadataSize: vi.fn(() => Promise.resolve(JSON.stringify(mocks.metadata).length)),
 }))
 
-import { csvToTracks, TracksToCsv } from "../../io/csv"
-import fixtureCsv from "./fixtures/large-import-100-tracks.csv?raw"
-import { Track } from "../../domain/track"
-import {
-  addTrackToLibrary,
-  clearLibrary,
-  getLibrary,
-  mergeLibrary,
-} from "../../room/library"
-import { key } from "../../shared/key"
-
 const libraryPath = key("library")
+
+function normalizeExpectedTrack(track: Track): Track {
+  return {
+    ...track,
+    url: canonicalizeTrackUrl(track.url),
+    tags: track.tags.map(tag =>
+      typeof tag === "number" ? tag : (getBuiltinTagId(tag) ?? tag.toLowerCase()),
+    ),
+    offset: 0,
+  }
+}
 
 describe("CSV round-trip simulation", () => {
   beforeEach(() => {
@@ -75,7 +87,6 @@ describe("CSV round-trip simulation", () => {
   })
 
   it("exports library to csv, clears, re-imports, and validates library matches", async () => {
-    // Create initial library
     const originalTracks: Track[] = [
       {
         title: "Ambient Soundscape",
@@ -99,7 +110,6 @@ describe("CSV round-trip simulation", () => {
       },
     ]
 
-    // Add all tracks to library
     mocks.getMetadata.mockResolvedValue({
       [libraryPath]: [],
     })
@@ -111,24 +121,20 @@ describe("CSV round-trip simulation", () => {
       })
     }
 
-    // Verify all tracks were added (order-agnostic)
     const addedLibrary = getLibrary()
     expect(addedLibrary).toHaveLength(originalTracks.length)
     originalTracks.forEach(track => {
-      expect(addedLibrary).toContainEqual(track)
+      expect(addedLibrary).toContainEqual(normalizeExpectedTrack(track))
     })
 
-    // Export to CSV
     const csv = TracksToCsv(getLibrary())
 
-    // Verify CSV has correct headers and content
     expect(csv).toContain("url,title,tags")
     expect(csv).toContain("Ambient Soundscape")
     expect(csv).toContain("Epic Battle Music")
     expect(csv).toContain("Forest Walk")
     expect(csv).toContain("Mysterious Dungeon")
 
-    // Clear library
     await clearLibrary()
     mocks.getMetadata.mockResolvedValue({
       [libraryPath]: [],
@@ -136,13 +142,10 @@ describe("CSV round-trip simulation", () => {
 
     expect(getLibrary()).toHaveLength(0)
 
-    // Re-import from CSV
     const { tracks: importedTracks, errors } = csvToTracks(csv)
 
-    // Verify no import errors
     expect(errors).toHaveLength(0)
 
-    // Add re-imported tracks back to library
     for (const track of importedTracks) {
       await addTrackToLibrary(track)
       mocks.getMetadata.mockResolvedValue({
@@ -150,22 +153,22 @@ describe("CSV round-trip simulation", () => {
       })
     }
 
-    // Verify re-imported library contains all original tracks (order-agnostic)
     const finalLibrary = getLibrary()
     expect(finalLibrary).toHaveLength(originalTracks.length)
     originalTracks.forEach(track => {
-      expect(finalLibrary).toContainEqual(track)
+      expect(finalLibrary).toContainEqual(normalizeExpectedTrack(track))
     })
 
-    // Verify each track individually
     for (const originalTrack of originalTracks) {
-      const matchingTrack = finalLibrary.find(
-        t =>
-          t.title === originalTrack.title &&
-          t.url === originalTrack.url &&
-          t.tags.length === originalTrack.tags.length &&
-          t.tags.every(tag => originalTrack.tags.includes(tag)),
-      )
+      const matchingTrack = finalLibrary.find(t => {
+        const normalized = normalizeExpectedTrack(originalTrack)
+        return (
+          t.title === normalized.title &&
+          t.url === normalized.url &&
+          t.tags.length === normalized.tags.length &&
+          t.tags.every(tag => normalized.tags.includes(tag as never))
+        )
+      })
       expect(matchingTrack).toBeDefined()
     }
   })
@@ -180,10 +183,10 @@ describe("CSV round-trip simulation", () => {
 
     expect(outcome?.rejections).toEqual([
       { reason: "url-too-long", count: 1 },
-      { reason: "library-over-limit", count: 58 },
+      { reason: "library-over-limit", count: 60 },
     ])
-    expect(getLibrary()).toHaveLength(41)
-    expect(getLibrary()).not.toContainEqual(tracks[1])
+    expect(getLibrary()).toHaveLength(39)
+    expect(getLibrary()).not.toContainEqual(normalizeExpectedTrack(tracks[1]))
   })
 
   it("handles special characters and unicode in track names during csv round-trip", async () => {
@@ -221,16 +224,13 @@ describe("CSV round-trip simulation", () => {
       })
     }
 
-    // Export and re-import
     const csv = TracksToCsv(getLibrary())
     const { tracks: importedTracks, errors } = csvToTracks(csv)
 
     expect(errors).toHaveLength(0)
-    
-    // Check that all special tracks are in the imported tracks (order-agnostic)
     expect(importedTracks).toHaveLength(specialTracks.length)
     specialTracks.forEach(track => {
-      expect(importedTracks).toContainEqual(track)
+      expect(importedTracks).toContainEqual(normalizeExpectedTrack(track))
     })
   })
 
@@ -270,17 +270,17 @@ describe("CSV round-trip simulation", () => {
     expect(errors).toHaveLength(0)
     expect(importedTracks).toHaveLength(tracksWithTags.length)
 
-    // Verify each track can be found with correct tags
     for (const track of tracksWithTags) {
+      const expected = normalizeExpectedTrack(track)
       const importedTrack = importedTracks.find(
         t =>
-          t.title === track.title &&
-          t.url === track.url &&
-          t.tags.length === track.tags.length &&
-          t.tags.every(tag => track.tags.includes(tag)),
+          t.title === expected.title &&
+          t.url === expected.url &&
+          t.tags.length === expected.tags.length &&
+          t.tags.every(tag => expected.tags.includes(tag as never)),
       )
       expect(importedTrack).toBeDefined()
-      expect(importedTrack?.tags).toEqual(track.tags)
+      expect(importedTrack?.tags).toEqual(expected.tags)
     }
   })
 })
