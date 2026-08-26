@@ -1,11 +1,23 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
 import { Action, TrackProgressMap } from "../domain/playback"
+import {
+  CUSTOM_TAG_ID_MAX,
+  CUSTOM_TAG_ID_MIN,
+  CustomTagMap,
+  isValidTagId,
+  MAX_CUSTOM_TAG_NAME_LENGTH,
+} from "../domain/tags"
 import { canonicalizeTrackUrl, Track } from "../domain/track"
 import { key } from "../shared/key"
 
 export const controlPath = key("control")
 export const progressPath = key("progress")
 export const libraryPath = key("library")
+export const customTagsPath = key("customTags")
+
+const MIN_TAG_ID = 0
+const MAX_TAG_ID = 99
+const MAX_TAGS_PER_TRACK = 5
 
 export interface RoomControlMessage {
   id: string
@@ -24,6 +36,29 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
 }
 
+export function extractCustomTags(metadata: Metadata): CustomTagMap {
+  const value = metadata[customTagsPath]
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  const customTags: CustomTagMap = {}
+  Object.entries(value).forEach(([rawId, rawName]) => {
+    const id = Number(rawId)
+    const name = typeof rawName === "string" ? rawName.trim() : ""
+    if (
+      Number.isInteger(id) &&
+      id >= CUSTOM_TAG_ID_MIN &&
+      id <= CUSTOM_TAG_ID_MAX &&
+      name.length > 0 &&
+      name.length <= MAX_CUSTOM_TAG_NAME_LENGTH
+    ) {
+      customTags[String(id)] = name
+    }
+  })
+  return customTags
+}
+
 function parseTrack(value: unknown): Track | undefined {
   if (!isRecord(value)) {
     return undefined
@@ -39,16 +74,23 @@ function parseTrack(value: unknown): Track | undefined {
   }
 
   const tagIds = tags
-    .map(tag =>
-      typeof tag === "number"
-        ? Number.isInteger(tag) && tag >= 0
+    .map(tag => {
+      if (typeof tag === "number") {
+        return isValidTagId(tag) && tag >= MIN_TAG_ID && tag <= MAX_TAG_ID
           ? tag
           : undefined
-        : typeof tag === "string" && tag.trim()
-          ? tag.trim()
-          : undefined,
-    )
+      }
+      return typeof tag === "string" && tag.trim() ? tag.trim() : undefined
+    })
     .filter((tag): tag is number | string => tag !== undefined)
+
+  if (tagIds.length !== tags.length || tagIds.length > MAX_TAGS_PER_TRACK) {
+    return undefined
+  }
+
+  if (new Set(tagIds).size !== tagIds.length) {
+    return undefined
+  }
 
   const offset = Number(offsetValue)
 
@@ -84,19 +126,16 @@ export function extractLibrary(metadata: Metadata): Track[] {
 
 export function extractProgressMap(metadata: Metadata): TrackProgressMap {
   const value = metadata[progressPath]
-
   if (!isRecord(value)) {
     return {}
   }
 
   const progress: TrackProgressMap = {}
-
-  Object.entries(value).forEach(([trackUrl, offset]) => {
-    if (isFiniteNumber(offset) && offset >= 0) {
-      progress[canonicalizeTrackUrl(trackUrl)] = offset
+  Object.entries(value).forEach(([url, offset]) => {
+    if (canonicalizeTrackUrl(url) && isFiniteNumber(offset) && offset >= 0) {
+      progress[canonicalizeTrackUrl(url)] = offset
     }
   })
-
   return progress
 }
 

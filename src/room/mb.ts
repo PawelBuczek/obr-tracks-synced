@@ -1,14 +1,14 @@
 import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { v4 as uuidv4 } from "uuid"
-import { Action, getPlaybackOffset, prepareTrackSelection, resetTrackProgress, TrackProgressMap } from "../domain/playback"
-import { Track } from "../domain/track"
+import { Action, getPlaybackOffset } from "../domain/playback"
+import { canonicalizeTrackUrl, Track } from "../domain/track"
 import { now } from "../infra/time"
 import { ObrError } from "../shared/errors"
 import { checkTrack, convertToDirectDownloadable } from "../shared/utils"
 import {
   controlPath,
   extractControlMessage,
-  extractProgressMap,
+  extractLibrary,
   RoomControlMessage,
 } from "./metadataSchema"
 import {
@@ -59,13 +59,14 @@ function newPlayMessage(
   duration: number,
   offset = 0,
 ): Message {
+  const { offset: _rowOffset, ...controlTrack } = track
   return {
     id: uuidv4(),
     time: now(),
     action: Action.Play,
     offset,
     duration: duration,
-    track: track,
+    track: controlTrack,
   }
 }
 
@@ -96,15 +97,16 @@ function resumeCurrentMessage(): Message {
 
 // message cache
 let currentMessage: Message | undefined = undefined
-let currentProgress: TrackProgressMap = {}
+let currentLibrary: Track[] = []
 
 function getCurrentOffset(message: Message) {
   return getPlaybackOffset(message.offset, message.time, now())
 }
 
 export function getCachedTrackOffset(trackUrl: string): number | undefined {
-  const cachedOffset = currentProgress[trackUrl]
-  return Number.isFinite(cachedOffset) ? cachedOffset : undefined
+  return currentLibrary.find(track =>
+    canonicalizeTrackUrl(track.url) === canonicalizeTrackUrl(trackUrl),
+  )?.offset
 }
 
 async function ensureGmCanSeek() {
@@ -119,7 +121,7 @@ export function onMessage(
 ): () => void {
   const handler = (m: Metadata) => {
     const message = extractControlMessage(m)
-    currentProgress = extractProgressMap(m)
+    currentLibrary = extractLibrary(m)
 
     if (!isSameMessage(message, currentMessage)) {
       // A future message means means there is a massive clock skew issue,
@@ -152,16 +154,7 @@ export function play(track: Track) {
   // convert url into direct downloadable if applicable
   fixed.url = convertToDirectDownloadable(fixed.url)
 
-  const { progressMap, offset } = prepareTrackSelection(
-    fixed,
-    currentProgress,
-    currentMessage?.track,
-    currentMessage && currentMessage.action === Action.Play
-      ? getCurrentOffset(currentMessage)
-      : undefined,
-    currentMessage?.action,
-  )
-  currentProgress = progressMap
+  const offset = getCachedTrackOffset(fixed.url) ?? 0
 
   // test the url
   const audio = new Audio()
@@ -170,10 +163,15 @@ export function play(track: Track) {
     throw new ObrError("Audio error: Unable to play track", fixed)
   }
   audio.onloadedmetadata = () => {
-    writeControlAndProgress(
-      newPlayMessage(fixed, audio.duration, offset),
-      currentProgress,
-    )
+    const previousTrack = currentMessage?.track
+    const previousOffset =
+      currentMessage?.action === Action.Play && currentMessage
+        ? getCurrentOffset(currentMessage)
+        : undefined
+    writeControlAndProgress(newPlayMessage(fixed, audio.duration, offset), undefined, {
+      saveTrack: previousTrack,
+      saveOffset: previousOffset,
+    })
   }
 
   audio.src = fixed.url
@@ -184,13 +182,8 @@ export function pause() {
     throw new ObrError("Unable to pause before receiving first message")
   }
 
-  currentProgress = {
-    ...currentProgress,
-    [currentMessage.track.url]: getCurrentOffset(currentMessage),
-  }
-
   const expectedControlId = currentMessage.id
-  writeControlAndProgress(pauseCurrentMessage(), currentProgress, {
+  writeControlAndProgress(pauseCurrentMessage(), undefined, {
     expectedControlId,
   })
 }
@@ -201,7 +194,7 @@ export function resume() {
   }
 
   const expectedControlId = currentMessage.id
-  writeControlAndProgress(resumeCurrentMessage(), currentProgress, {
+  writeControlAndProgress(resumeCurrentMessage(), undefined, {
     expectedControlId,
   })
 }
@@ -210,13 +203,12 @@ export function stop() {
   const activeTrack = currentMessage?.track
   stopPlayback()
 
-  clearControlAndWriteProgress(currentProgress, activeTrack)
+  clearControlAndWriteProgress(undefined, activeTrack)
 }
 
 export function stopPlayback() {
 
   if (currentMessage) {
-    currentProgress = resetTrackProgress(currentProgress, currentMessage.track)
   }
 }
 
@@ -239,13 +231,8 @@ export async function seekToOffset(offsetSeconds: number) {
     )
     updatedMessage.action = Action.Pause
 
-    currentProgress = {
-      ...currentProgress,
-      [currentMessage.track.url]: clampedOffset,
-    }
-
     const expectedControlId = currentMessage.id
-    writeControlAndProgress(updatedMessage, currentProgress, {
+    writeControlAndProgress(updatedMessage, undefined, {
       expectedControlId,
     })
   } else {
@@ -257,13 +244,8 @@ export async function seekToOffset(offsetSeconds: number) {
     )
     updatedMessage.action = Action.Play
 
-    currentProgress = {
-      ...currentProgress,
-      [currentMessage.track.url]: clampedOffset,
-    }
-
     const expectedControlId = currentMessage.id
-    writeControlAndProgress(updatedMessage, currentProgress, {
+    writeControlAndProgress(updatedMessage, undefined, {
       expectedControlId,
     })
   }

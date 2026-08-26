@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import { Action } from "../../domain/playback"
 import {
   controlPath,
+  customTagsPath,
   extractControlMessage,
+  extractCustomTags,
   extractLibrary,
   extractProgressMap,
   libraryPath,
@@ -10,6 +12,25 @@ import {
 } from "../../room/metadataSchema"
 
 describe("metadata schema", () => {
+  it("extracts only valid custom tag entries", () => {
+    const metadata = {
+      [customTagsPath]: {
+        "84": "too low",
+        "85": "  Tavern  ",
+        "99": "last valid tag",
+        "100": "too high",
+        bad: "not an id",
+        "86": "this name is too long",
+        "87": 42,
+      },
+    }
+
+    expect(extractCustomTags(metadata)).toEqual({
+      "85": "Tavern",
+      "99": "last valid tag",
+    })
+  })
+
   it("extracts only valid numeric-tag tracks from library metadata", () => {
     const metadata = {
       [libraryPath]: [

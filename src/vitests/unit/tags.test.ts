@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest"
 import {
   BUILT_IN_TAGS,
+  CUSTOM_TAG_ID_MAX,
+  CUSTOM_TAG_ID_MIN,
   formatTrackTag,
   getBuiltinTagId,
   getBuiltinTagName,
+  isCustomTagId,
+  isValidTagId,
 } from "../../domain/tags"
 
 describe("built-in tag registry", () => {
@@ -26,5 +30,15 @@ describe("built-in tag registry", () => {
     expect(getBuiltinTagId("battle")).toBe(1)
     expect(getBuiltinTagId("  BATTLE  ")).toBe(1)
     expect(getBuiltinTagId("unknown")).toBeUndefined()
+  })
+
+  it("validates the stable built-in and custom tag ID ranges", () => {
+    expect(isValidTagId(0)).toBe(true)
+    expect(isValidTagId(BUILT_IN_TAGS.length - 1)).toBe(true)
+    expect(isValidTagId(CUSTOM_TAG_ID_MIN)).toBe(true)
+    expect(isValidTagId(CUSTOM_TAG_ID_MAX)).toBe(true)
+    expect(isValidTagId(100)).toBe(false)
+    expect(isCustomTagId(CUSTOM_TAG_ID_MIN)).toBe(true)
+    expect(isCustomTagId(84)).toBe(false)
   })
 })

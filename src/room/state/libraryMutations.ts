@@ -1,5 +1,5 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
-import { removeTrackProgress, TrackProgressMap } from "../../domain/playback"
+import { TrackProgressMap } from "../../domain/playback"
 import { isSameTrack, Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
 import { cleanTrack } from "../../shared/utils"
@@ -7,7 +7,6 @@ import {
   controlPath,
   extractControlMessage,
   extractLibrary,
-  extractProgressMap,
   libraryPath,
   progressPath,
 } from "../metadataSchema"
@@ -76,7 +75,6 @@ export async function mergeTracksIntoRoomLibrary(
       nextLibrary = candidate.library
     }
 
-    const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
     const nextControl = getUpdatedControlTrack(currentMessage, nextLibrary)
 
@@ -95,7 +93,7 @@ export async function mergeTracksIntoRoomLibrary(
     outcome = {
       changed,
       library: nextLibrary,
-      progress,
+      progress: {},
       shouldStopPlayback: false,
       ...(rejections.length > 0 ? { rejections } : {}),
     }
@@ -126,14 +124,13 @@ export async function deleteTrackFromRoomLibrary(
 
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
-    const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
 
     if (!currentLibrary.some(currentTrack => isSameTrack(currentTrack, track))) {
       outcome = {
         changed: false,
         library: currentLibrary,
-        progress,
+        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -145,14 +142,10 @@ export async function deleteTrackFromRoomLibrary(
 
     const trackIsPlaying =
       currentMessage !== undefined && isSameTrack(currentMessage.track, track)
-    const nextProgress = trackIsPlaying
-      ? removeTrackProgress(progress, currentMessage.track)
-      : progress
-
     outcome = {
       changed: true,
       library: nextLibrary,
-      progress: nextProgress,
+      progress: {},
       shouldStopPlayback: trackIsPlaying,
     }
 
@@ -183,12 +176,10 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
 
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
-    const progress = extractProgressMap(current)
     const currentMessage = extractControlMessage(current)
 
     const shouldNoop =
       currentLibrary.length === 0 &&
-      Object.keys(progress).length === 0 &&
       currentMessage === undefined
 
     if (shouldNoop) {
@@ -231,8 +222,6 @@ export async function moveTrackInRoomLibrary(
 
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
-    const progress = extractProgressMap(current)
-
     const sourceIndex = currentLibrary.findIndex(currentTrack =>
       isSameTrack(currentTrack, track),
     )
@@ -241,7 +230,7 @@ export async function moveTrackInRoomLibrary(
       outcome = {
         changed: false,
         library: currentLibrary,
-        progress,
+        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -253,7 +242,7 @@ export async function moveTrackInRoomLibrary(
       outcome = {
         changed: false,
         library: currentLibrary,
-        progress,
+        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -268,12 +257,13 @@ export async function moveTrackInRoomLibrary(
     outcome = {
       changed: true,
       library: nextLibrary,
-      progress,
+      progress: {},
       shouldStopPlayback: false,
     }
 
     return {
       [libraryPath]: nextLibrary,
+      [progressPath]: undefined,
     }
   })
 

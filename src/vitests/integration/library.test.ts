@@ -335,15 +335,6 @@ beforeEach(() => {
       .toHaveBeenCalled()
 
 
-    expect(mocks.removeTrackProgress)
-      .toHaveBeenCalledWith(
-        {
-          [track.url]: 42,
-        },
-        track,
-      )
-
-
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
         [libraryPath]: [],

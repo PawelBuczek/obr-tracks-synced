@@ -86,7 +86,32 @@ export const BUILT_IN_TAGS = [
   "delicate",
 ] as const
 
+export const BUILT_IN_TAG_ID_MIN = 0
+export const BUILT_IN_TAG_ID_MAX = BUILT_IN_TAGS.length - 1
+export const CUSTOM_TAG_ID_MIN = 85
+export const CUSTOM_TAG_ID_MAX = 99
+export const MAX_TAGS_PER_TRACK = 5
+export const MAX_CUSTOM_TAG_NAME_LENGTH = 15
+
 export type BuiltInTagName = (typeof BUILT_IN_TAGS)[number]
+
+export type CustomTagMap = Record<string, string>
+
+export function isValidTagId(id: number): boolean {
+  return (
+    Number.isInteger(id) &&
+    ((id >= BUILT_IN_TAG_ID_MIN && id <= BUILT_IN_TAG_ID_MAX) ||
+      (id >= CUSTOM_TAG_ID_MIN && id <= CUSTOM_TAG_ID_MAX))
+  )
+}
+
+export function isCustomTagId(id: number): boolean {
+  return Number.isInteger(id) && id >= CUSTOM_TAG_ID_MIN && id <= CUSTOM_TAG_ID_MAX
+}
+
+export function normalizeCustomTagName(name: string): string {
+  return name.trim()
+}
 
 export function normalizeTagName(name: string): string {
   return name.trim().toLowerCase()

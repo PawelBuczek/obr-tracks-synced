@@ -1,4 +1,3 @@
-import { TrackProgressMap } from "../../domain/playback"
 import { isSameTrack, Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
 import {
@@ -23,10 +22,12 @@ function withTrackOffset(library: Track[], track: Track, offset: number): Track[
 
 export function writeControlAndProgress(
   control: RoomControlMessage,
-  _progress: TrackProgressMap,
+  _progress?: unknown,
   options?: {
     expectedControlId?: string
-  },
+    saveTrack?: Track
+    saveOffset?: number
+  }
 ) {
   return updateMetadataWithCurrent(current => {
     const currentLibrary = extractLibrary(current)
@@ -47,7 +48,10 @@ export function writeControlAndProgress(
       }
     }
 
-    const nextLibrary = withTrackOffset(currentLibrary, control.track, control.offset)
+    let nextLibrary = withTrackOffset(currentLibrary, control.track, control.offset)
+    if (options?.saveTrack && options.saveOffset !== undefined) {
+      nextLibrary = withTrackOffset(nextLibrary, options.saveTrack, options.saveOffset)
+    }
 
     return {
       [libraryPath]: nextLibrary,
@@ -58,7 +62,7 @@ export function writeControlAndProgress(
 }
 
 export function clearControlAndWriteProgress(
-  _progress: TrackProgressMap,
+  _progress?: unknown,
   track?: Track,
 ) {
   return updateMetadataWithCurrent(current => {

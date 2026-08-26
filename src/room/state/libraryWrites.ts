@@ -1,4 +1,3 @@
-import { TrackProgressMap } from "../../domain/playback"
 import { Track } from "../../domain/track"
 import { updateMetadata } from "../../infra/metadataHelper"
 import {
@@ -16,7 +15,7 @@ export async function writeLibrary(library: Track[]) {
 
 export function writeLibraryAndProgress(
   library: Track[],
-  _progress: TrackProgressMap,
+  _progress?: unknown,
 ) {
   return updateMetadata({
     [libraryPath]: library,
@@ -26,7 +25,7 @@ export function writeLibraryAndProgress(
 
 export function writeLibraryAndProgressAndClearControl(
   library: Track[],
-  _progress: TrackProgressMap,
+  _progress?: unknown,
 ) {
   return updateMetadata({
     [libraryPath]: library,

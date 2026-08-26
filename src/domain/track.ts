@@ -8,7 +8,7 @@ export interface Track {
 }
 
 export function canonicalizeTrackUrl(url: string): string {
-  const trimmed = url.trim().replace(/\s+/g, "").toLowerCase()
+  const trimmed = url.trim().replace(/\s+/g, "")
 
   if (!trimmed) {
     return trimmed
@@ -17,9 +17,11 @@ export function canonicalizeTrackUrl(url: string): string {
   try {
     const fixed = new URL(trimmed)
 
-    if (fixed.hostname.endsWith("dropbox.com")) {
+    if (fixed.hostname.endsWith("dropbox.com") || fixed.hostname === "dl.dropboxusercontent.com") {
       fixed.searchParams.set("dl", "1")
-      fixed.hostname = "dl.dropboxusercontent.com"
+      if (fixed.hostname.endsWith("dropbox.com")) {
+        fixed.hostname = "dl.dropboxusercontent.com"
+      }
       fixed.hash = ""
       return fixed.toString().toLowerCase()
     }
