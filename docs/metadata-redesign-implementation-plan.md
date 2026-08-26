@@ -1,8 +1,8 @@
 # Metadata Redesign Implementation Plan
 
-Status: **Chunk 6 is completed and verified; later redesign chunks remain pending**
+Status: **Chunks 7 and 8 are completed and verified; the redesign is effectively complete**
 
-Validation note: the current repo state has been fully verified with `npm run test:all` and `npm run build`. The row-offset migration and local sort-mode migration have been completed and validated, while later redesign chunks remain explicitly pending.
+Validation note: the current repo state has been verified with the focused unit suite, the full build, and E2E coverage. The row-offset migration, local sort-mode migration, custom-tag lifecycle, and final cleanup are all implemented and validated.
 
 This plan implements the decisions in [metadata-redesign-explanation.md](metadata-redesign-explanation.md):
 
@@ -212,7 +212,7 @@ npx vitest run src/vitests/unit/App.playerVisibility.test.tsx src/vitests/unit/s
 npm run test:all
 ```
 
-## Chunk 7: Custom tag lifecycle and atomic usage cleanup
+## Chunk 7: Custom tag lifecycle and atomic usage cleanup — ✅ Completed and verified
 
 **Files/surfaces:** new custom-tag state module, `src/room/metadataSchema.ts`, `src/room/state/libraryMutationPolicy.ts`, `src/room/state/libraryMutations.ts`, library UI/dialog, role/permission code, integration tests.
 
@@ -244,7 +244,7 @@ npm run test:all
 npm run build
 ```
 
-## Chunk 8: Size enforcement and final cleanup
+## Chunk 8: Size enforcement and final cleanup — ✅ Completed and verified
 
 **Files/surfaces:** library mutation size guard, metadata helper, fixtures, README/proposal documentation, all tests.
 

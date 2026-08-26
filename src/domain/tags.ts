@@ -131,22 +131,60 @@ export function getBuiltinTagName(id: number): string | undefined {
   return BUILT_IN_TAGS[id]
 }
 
-export function resolveTagId(tag: number | string): number | undefined {
-  if (typeof tag === "number") {
-    return getBuiltinTagName(tag) ? tag : undefined
+export function getCustomTagName(id: number, customTags: CustomTagMap = {}): string | undefined {
+  if (!isCustomTagId(id)) {
+    return undefined
   }
 
-  return getBuiltinTagId(tag)
+  const key = String(id)
+  return customTags[key] ? customTags[key].trim() : undefined
 }
 
-export function resolveTagName(tag: number | string): string {
+export function resolveTagId(
+  tag: number | string,
+  customTags: CustomTagMap = {},
+): number | undefined {
   if (typeof tag === "number") {
-    return getBuiltinTagName(tag) ?? String(tag)
+    if (getBuiltinTagName(tag)) {
+      return tag
+    }
+
+    if (isCustomTagId(tag) && getCustomTagName(tag, customTags)) {
+      return tag
+    }
+
+    return undefined
+  }
+
+  const normalized = normalizeTagName(tag)
+  const builtinId = getBuiltinTagId(normalized)
+  if (builtinId !== undefined) {
+    return builtinId
+  }
+
+  const customId = Object.entries(customTags).find(([, name]) => {
+    return normalizeCustomTagName(name).toLowerCase() === normalized
+  })?.[0]
+
+  return customId !== undefined ? Number(customId) : undefined
+}
+
+export function resolveTagName(tag: number | string, customTags: CustomTagMap = {}): string {
+  if (typeof tag === "number") {
+    if (getBuiltinTagName(tag)) {
+      return getBuiltinTagName(tag)!
+    }
+
+    if (isCustomTagId(tag)) {
+      return getCustomTagName(tag, customTags) ?? String(tag)
+    }
+
+    return String(tag)
   }
 
   return normalizeTagName(tag)
 }
 
-export function formatTrackTag(tag: number | string): string {
-  return resolveTagName(tag)
+export function formatTrackTag(tag: number | string, customTags: CustomTagMap = {}): string {
+  return resolveTagName(tag, customTags)
 }

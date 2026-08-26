@@ -27,18 +27,21 @@ Testing setup, commands, and test suite overview are documented in [TESTING_IN_T
 ## Room Metadata Notes
 
 Room metadata is now parsed through a single schema boundary in `src/room/metadataSchema.ts`.
-Metadata writes are centralized in `src/room/stateOperations.ts`.
 
+The redesigned room keys are:
+
+- `com.obr.tracks/library`: ordered track array
+- `com.obr.tracks/customTags`: sparse custom-tag ID map
 - `com.obr.tracks/control`: current playback message
-- `com.obr.tracks/progress`: per-track offset map
-- `com.obr.tracks/library`: track library
+
+Legacy room metadata keys such as `progress`, `libraryOrder`, and `librarySortMode` are intentionally not part of the current normal write path. Resting offsets live on each library row, while local sort mode remains viewer-side state.
 
 The current conflict strategy is hybrid:
 
 - queue and serialize writes per client
-- route playback and library writes through centralized room operations
-- run library merge/delete/clear decisions against one queued current metadata snapshot
+- resolve state-changing operations against one queued current metadata snapshot
 - treat stale operations as safe no-ops when the target is already gone (for example delete-after-delete)
+- keep custom-tag delete atomic with the associated library cleanup in the same transform
 
 Conflict safety invariants are verified in `src/vitests/integration/conflictInvariants.test.ts`.
 
@@ -48,16 +51,17 @@ All room writes are serialized per client and resolved against one queued curren
 
 | Operation Pair | Resolution Rule | Expected End State |
 |---|---|---|
-| `merge` + `merge` (same logical track) | Last writer wins for `title/tags`; track identity is normalized (`isSameTrack`) | Single track entry, latest `title/tags` |
+| `merge` + `merge` (same logical track) | Last writer wins for `title/tags`; track identity is normalized (`isSameTrack`) | Single track entry, latest `title/tags`, preserved row offset |
 | `play` + `play` (different tracks) | Last applied control write wins | Final control points at later-selected track |
 | `merge` + `merge` (different tracks, same `title`) | Reject second write with duplicate-title validation | First valid write remains |
 | `delete` + `delete` (same logical track) | First delete removes; stale second delete becomes no-op | Track absent |
-| `clear` + `clear` | First clear removes all; stale second clear becomes no-op | Empty library/progress/control |
+| `clear` + `clear` | First clear removes all; stale second clear becomes no-op | Empty library and cleared control |
 | `delete`/`clear` + playback update (`play/pause/resume/seek`) | Metadata order decides final state; later write is authoritative | Deterministic last-applied state |
 | stale `pause`/`resume`/`seek` after control replacement | If expected control id no longer matches current control id, write becomes no-op | Newer playback control remains authoritative |
 | stale `play` for deleted track | If target track is absent from room library, write becomes no-op | Deleted track cannot be resurrected by late play |
-| `delete` of currently playing track | Always clear control and track progress when logical track matches | Playback stopped for deleted track |
+| `delete` of currently playing track | Always clear control when the logical track matches | Playback stopped for deleted track |
 | `merge` updating currently playing track details | Refresh control track `title/tags` without changing active playback id/timing | UI reflects latest metadata |
+| custom-tag `delete` | Remove the custom tag and strip that tag ID from every row in the same transform | No dangling custom-tag references remain |
 
 ## Deployment
 

@@ -15,7 +15,6 @@ import {
   moveTrackInRoomLibrary,
 } from "./state/libraryMutations"
 import { writeLibrary } from "./state/libraryWrites"
-import { getMetadataSize } from "../infra/metadataHelper"
 
 const eventEmitter = new EventEmitter()
 
@@ -141,8 +140,6 @@ export async function mergeLibrary(tracks: Track[]) {
       push()
     }
 
-    const metadataSizeAfterWrite = await getMetadataSize()
-    console.log("metadataSizeAfterWriteLibrarty", metadataSizeAfterWrite)
     return outcome
   } catch (error) {
     // Keep local cache consistent with room state on validation failures.
@@ -156,8 +153,6 @@ export function getLibrary(): Track[] {
 }
 
 export function clearLibrary() {
-  console.trace("[library] clearLibrary")
-
   return roomSyncReady.then(async () => {
     const outcome = await clearRoomLibrary()
     updateCacheFromOperationResult(outcome.library)
