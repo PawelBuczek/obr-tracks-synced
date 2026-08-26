@@ -102,70 +102,75 @@ function TrackCard(props: TrackCardProps) {
   }
 
   return (
-    <Card sx={{ minWidth: "100%" }} onContextMenu={handleContextMenu}>
+    <Card
+      sx={{ minWidth: "100%", position: "relative" }}
+      onContextMenu={handleContextMenu}
+    >
       <CardActionArea disableRipple={false} onClick={handleTrackClick}>
         <CardHeader
           subheader={track.title}
-          action={
-            <Stack direction="column" spacing={0}>
-              <Tooltip
-                title={
-                  canReorder
-                    ? ""
-                    : "disabled because the alphabetical sort is enabled"
-                }
-                enterDelay={500}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    aria-label={`Move ${track.title} up`}
-                    disabled={!canReorder || !canMoveUp}
-                    onClick={event => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      moveUp(track)
-                    }}
-                  >
-                    <ArrowUpwardRoundedIcon fontSize="inherit" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Tooltip
-                title={
-                  canReorder
-                    ? ""
-                    : "disabled because the alphabetical sort is enabled"
-                }
-                enterDelay={500}
-              >
-                <span>
-                  <IconButton
-                    size="small"
-                    aria-label={`Move ${track.title} down`}
-                    disabled={!canReorder || !canMoveDown}
-                    onClick={event => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      moveDown(track)
-                    }}
-                  >
-                    <ArrowDownwardRoundedIcon fontSize="inherit" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Stack>
-          }
-          subheaderTypographyProps={{
-            color: matches?.find(
-              m => m.key === "title" && m.value === track.title,
-            )
-              ? "secondary"
-              : undefined,
+          sx={{ pr: 6 }}
+          slotProps={{
+            subheader: {
+              color: matches?.find(
+                m => m.key === "title" && m.value === track.title,
+              )
+                ? "secondary"
+                : undefined,
+            },
           }}
         />
         {chips.length > 0 && <CardContent>{chips}</CardContent>}
       </CardActionArea>
+      {/* rendered outside CardActionArea to avoid nesting <button> inside <button> */}
+      <Stack
+        direction="column"
+        spacing={0}
+        sx={{ position: "absolute", top: 8, right: 8 }}
+      >
+        <Tooltip
+          title={
+            canReorder ? "" : "disabled because the alphabetical sort is enabled"
+          }
+          enterDelay={500}
+        >
+          <span>
+            <IconButton
+              size="small"
+              aria-label={`Move ${track.title} up`}
+              disabled={!canReorder || !canMoveUp}
+              onClick={event => {
+                event.preventDefault()
+                event.stopPropagation()
+                moveUp(track)
+              }}
+            >
+              <ArrowUpwardRoundedIcon fontSize="inherit" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip
+          title={
+            canReorder ? "" : "disabled because the alphabetical sort is enabled"
+          }
+          enterDelay={500}
+        >
+          <span>
+            <IconButton
+              size="small"
+              aria-label={`Move ${track.title} down`}
+              disabled={!canReorder || !canMoveDown}
+              onClick={event => {
+                event.preventDefault()
+                event.stopPropagation()
+                moveDown(track)
+              }}
+            >
+              <ArrowDownwardRoundedIcon fontSize="inherit" />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Stack>
       <Menu
         open={contextMenu !== null}
         onClose={handleClose}
