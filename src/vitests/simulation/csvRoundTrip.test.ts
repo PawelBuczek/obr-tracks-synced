@@ -73,7 +73,7 @@ describe("CSV round-trip simulation", () => {
     const originalTracks: Track[] = [
       {
         title: "Ambient Soundscape",
-        url: "https://www.dropbox.com/scl/fi/fl4h8fc7nx3ogaep7g3ui/Adventuring.mp3?rlkey=iqp87ke0vbrgm6ucv8zu97xqw&st=9wrfogff&dl=0",
+        url: "https://www.dropbox.com/scl/fi/fl4h8fc7nx3ogaep7g3ui/adventuring.mp3?rlkey=iqp87ke0vbrgm6ucv8zu97xqw&st=9wrfogff&dl=0",
         tags: ["ambient", "calming"],
       },
       {
@@ -88,7 +88,7 @@ describe("CSV round-trip simulation", () => {
       },
       {
         title: "Mysterious Dungeon",
-        url: "https://www.dropbox.com/scl/fi/zkr9ikc4a72kzkwc4olj0/Ambient.mp3?rlkey=tluhhdm259uw9l507hhnfy96p&st=2ebr2ea9&dl=0",
+        url: "https://www.dropbox.com/scl/fi/zkr9ikc4a72kzkwc4olj0/ambient.mp3?rlkey=tluhhdm259uw9l507hhnfy96p&st=2ebr2ea9&dl=0",
         tags: ["mysterious", "dark", "atmospheric"],
       },
     ]
