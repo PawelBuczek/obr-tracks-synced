@@ -1,8 +1,8 @@
 # Metadata Redesign Implementation Plan
 
-Status: **all verified through the current implementation; later redesign chunks remain pending**
+Status: **Chunk 5 is completed and verified; later redesign chunks remain pending**
 
-Validation note: the current repo state has been fully verified with the full project checks: `npm run test:all`, `npm run build`, and `npm run test:e2e` all pass. The plan is therefore kept accurate to the current implementation, while later redesign chunks beyond the already-validated baseline remain explicitly pending.
+Validation note: the current repo state has been fully verified with the full project checks: `npm run test:all`, `npm run build`, and `npm run test:e2e` all pass. The row-offset migration has been completed and validated, and the plan is therefore kept accurate to the current implementation while later redesign chunks beyond the already-validated baseline remain explicitly pending.
 
 This plan implements the decisions in [metadata-redesign-explanation.md](metadata-redesign-explanation.md):
 
@@ -150,9 +150,11 @@ npx vitest run src/vitests/integration/library.test.ts src/vitests/integration/c
 npm run build
 ```
 
-## Chunk 5: Move progress offsets onto library rows
+## Chunk 5: Move progress offsets onto library rows — ✅ Completed and verified
 
 **Files/surfaces:** `src/domain/playback.ts`, `src/room/state/playbackWrites.ts`, `src/room/state/libraryWrites.ts`, `src/room/state/libraryMutationPolicy.ts`, `src/room/state/libraryMutations.ts`, `src/room/mb.ts`, player/provider code, playback and state tests.
+
+**Current status:** the row-offset redesign is live and the repository has been revalidated with the full suite. The legacy standalone `progress` metadata path is removed; resting offsets persist on the library row, and stale `progress` keys are cleared during room metadata writes.
 
 - Remove `TrackProgressMap`, `progressPath`, and progress helper APIs once callers are migrated.
 - Add a snapshot transform that updates exactly one canonical library row's `offset`.

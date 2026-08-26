@@ -207,9 +207,10 @@ export function resume() {
 }
 
 export function stop() {
+  const activeTrack = currentMessage?.track
   stopPlayback()
 
-  clearControlAndWriteProgress(currentProgress)
+  clearControlAndWriteProgress(currentProgress, activeTrack)
 }
 
 export function stopPlayback() {

@@ -89,7 +89,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("rename-then-clear ends with an empty library because clear is the final writer", async () => {
@@ -119,7 +119,7 @@ describe("dual-GM conflict ordering", () => {
     expect(mergeOutcome.changed).toBe(true)
     expect(clearOutcome.changed).toBe(true)
     expect(mocks.metadata[libraryPath]).toEqual([])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
@@ -165,7 +165,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
@@ -220,7 +220,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
@@ -344,7 +344,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
@@ -389,7 +389,7 @@ describe("dual-GM conflict ordering", () => {
     expect(mergeOutcome.changed).toBe(true)
     expect(deleteOutcome.shouldStopPlayback).toBe(true)
     expect(mocks.metadata[libraryPath]).toEqual([])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
@@ -433,9 +433,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({
-      [initial.url]: 7,
-    })
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("dropbox url-variant interleaved adds converge to one logical track", async () => {
@@ -503,7 +501,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("clear-then-add starts the new track from clean metadata", async () => {
@@ -547,7 +545,7 @@ describe("dual-GM conflict ordering", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
@@ -594,7 +592,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(mocks.metadata[libraryPath]).toEqual([])
     expect(mocks.metadata[controlPath]).toBeUndefined()
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("delete-playing-then-stale-seek keeps playback cleared", async () => {
@@ -640,7 +638,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(mocks.metadata[libraryPath]).toEqual([])
     expect(mocks.metadata[controlPath]).toBeUndefined()
-    expect(mocks.metadata[progressPath]).toEqual({})
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("play-switch interleaving is deterministic with last writer winning control", async () => {
@@ -709,10 +707,7 @@ describe("dual-GM conflict ordering", () => {
         track: trackB,
       }),
     )
-    expect(mocks.metadata[progressPath]).toEqual({
-      [trackA.url]: 31,
-      [trackB.url]: 0,
-    })
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("late play write for a deleted track no-ops", async () => {
@@ -763,8 +758,6 @@ describe("dual-GM conflict ordering", () => {
 
     expect(mocks.metadata[libraryPath]).toEqual([{ ...trackB, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()
-    expect(mocks.metadata[progressPath]).toEqual({
-      [trackB.url]: 0,
-    })
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 })

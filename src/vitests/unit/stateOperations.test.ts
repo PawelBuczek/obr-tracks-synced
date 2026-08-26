@@ -81,11 +81,11 @@ beforeEach(() => {
 })
 
 describe("room state operations", () => {
-  it("writes control and progress for playback updates", async () => {
+  it("writes control and stores the paused offset on the library row instead of a standalone progress map", async () => {
     const control = {
       id: "msg-1",
       time: new Date("2026-01-01T00:00:00.000Z"),
-      action: Action.Play,
+      action: Action.Pause,
       offset: 5,
       duration: 60,
       track: {
@@ -100,7 +100,7 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [control.track],
+      [libraryPath]: [{ ...control.track, offset: 0 }],
       [progressPath]: {},
     }
 
@@ -108,7 +108,10 @@ describe("room state operations", () => {
 
     expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
     expect(mocks.metadata[controlPath]).toEqual(control)
-    expect(mocks.metadata[progressPath]).toEqual(progress)
+    expect(mocks.metadata[progressPath]).toBeUndefined()
+    expect(mocks.metadata[libraryPath]).toEqual([
+      { ...control.track, offset: 5 },
+    ])
   })
 
   it("no-ops playback write when track is no longer in room library", async () => {
@@ -217,23 +220,22 @@ describe("room state operations", () => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
       [libraryPath]: library,
-      [progressPath]: progress,
+      [progressPath]: undefined,
     })
 
     await writeLibraryAndProgressAndClearControl(library, progress)
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
       [libraryPath]: library,
-      [progressPath]: progress,
       [controlPath]: undefined,
+      [progressPath]: undefined,
     })
 
     await clearControlAndWriteProgress(progress)
 
-    expect(mocks.updateMetadata).toHaveBeenCalledWith({
-      [controlPath]: undefined,
-      [progressPath]: progress,
-    })
+    expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
+    expect(mocks.metadata[controlPath]).toBeUndefined()
+    expect(mocks.metadata[progressPath]).toBeUndefined()
   })
 
   it("merges tracks into room library using current metadata snapshot", async () => {

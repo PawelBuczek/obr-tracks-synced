@@ -107,6 +107,7 @@ export async function mergeTracksIntoRoomLibrary(
     return {
       ...(libraryChanged ? { [libraryPath]: nextLibrary } : {}),
       ...(nextControl ? { [controlPath]: nextControl } : {}),
+      [progressPath]: undefined,
     }
   })
 
@@ -158,13 +159,14 @@ export async function deleteTrackFromRoomLibrary(
     if (trackIsPlaying) {
       return {
         [libraryPath]: nextLibrary,
-        [progressPath]: nextProgress,
         [controlPath]: undefined,
+        [progressPath]: undefined,
       }
     }
 
     return {
       [libraryPath]: nextLibrary,
+      [progressPath]: undefined,
     }
   })
 
@@ -208,8 +210,8 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
 
     return {
       [libraryPath]: [],
-      [progressPath]: {},
       [controlPath]: undefined,
+      [progressPath]: undefined,
     }
   })
 

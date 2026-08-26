@@ -17,27 +17,28 @@ export async function writeLibrary(library: Track[]) {
 
   return updateMetadata({
     [libraryPath]: library,
+    [progressPath]: undefined,
   })
 }
 
 export function writeLibraryAndProgress(
   library: Track[],
-  progress: TrackProgressMap,
+  _progress: TrackProgressMap,
 ) {
   return updateMetadata({
     [libraryPath]: library,
-    [progressPath]: progress,
+    [progressPath]: undefined,
   })
 }
 
 export function writeLibraryAndProgressAndClearControl(
   library: Track[],
-  progress: TrackProgressMap,
+  _progress: TrackProgressMap,
 ) {
   return updateMetadata({
     [libraryPath]: library,
-    [progressPath]: progress,
     [controlPath]: undefined,
+    [progressPath]: undefined,
   })
 }
 

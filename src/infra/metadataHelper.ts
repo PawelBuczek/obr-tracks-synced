@@ -16,10 +16,18 @@ export function updateMetadataWithCurrent(
         return
       }
 
-      await OBR.room.setMetadata({
+      const nextMetadata = {
         ...current,
         ...update,
-      })
+      }
+
+      for (const key of Object.keys(update)) {
+        if (update[key] === undefined) {
+          delete nextMetadata[key]
+        }
+      }
+
+      await OBR.room.setMetadata(nextMetadata)
     })
 
   return metadataWriteQueue

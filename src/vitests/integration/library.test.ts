@@ -299,7 +299,6 @@ beforeEach(() => {
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
         [libraryPath]: [],
-        [progressPath]: {},
         [controlPath]: undefined,
       }),
     )

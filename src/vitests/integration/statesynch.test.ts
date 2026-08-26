@@ -37,7 +37,7 @@ vi.mock("../../infra/metadataHelper", () => ({
 }))
 
 import { Action, controlPath, onMessage, pause, stop } from "../../room/mb"
-import { libraryPath } from "../../room/metadataSchema"
+import { libraryPath, progressPath } from "../../room/metadataSchema"
 
 describe("message state synchronization", () => {
   beforeEach(() => {
@@ -197,11 +197,9 @@ it("clears current message after stop", async () => {
 
   expect(callback).toHaveBeenCalled()
 
-  stop()
+  await stop()
 
-  expect(mocks.updateMetadata).toHaveBeenCalledWith(
-    expect.objectContaining({
-      [controlPath]: undefined,
-    }),
-  )
+  expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
+  expect(mocks.metadata[controlPath]).toBeUndefined()
+  expect(mocks.metadata[progressPath]).toBeUndefined()
 })
