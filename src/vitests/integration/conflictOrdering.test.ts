@@ -583,9 +583,6 @@ describe("dual-GM conflict ordering", () => {
         track,
       },
       {
-        [track.url]: 21,
-      },
-      {
         expectedControlId: "playing-id",
       },
     )
@@ -629,9 +626,6 @@ describe("dual-GM conflict ordering", () => {
         track,
       },
       {
-        [track.url]: 42,
-      },
-      {
         expectedControlId: "playing-id",
       },
     )
@@ -670,35 +664,23 @@ describe("dual-GM conflict ordering", () => {
       },
     }
 
-    await writeControlAndProgress(
-      {
-        id: "gm1-play-a",
-        time: new Date("2026-01-01T00:00:01.000Z"),
-        action: Action.Play,
-        offset: 31,
-        duration: 400,
-        track: trackA,
-      },
-      {
-        [trackA.url]: 31,
-        [trackB.url]: 0,
-      },
-    )
+    await writeControlAndProgress({
+      id: "gm1-play-a",
+      time: new Date("2026-01-01T00:00:01.000Z"),
+      action: Action.Play,
+      offset: 31,
+      duration: 400,
+      track: trackA,
+    })
 
-    await writeControlAndProgress(
-      {
-        id: "gm2-play-b",
-        time: new Date("2026-01-01T00:00:02.000Z"),
-        action: Action.Play,
-        offset: 0,
-        duration: 200,
-        track: trackB,
-      },
-      {
-        [trackA.url]: 31,
-        [trackB.url]: 0,
-      },
-    )
+    await writeControlAndProgress({
+      id: "gm2-play-b",
+      time: new Date("2026-01-01T00:00:02.000Z"),
+      action: Action.Play,
+      offset: 0,
+      duration: 200,
+      track: trackB,
+    })
 
     expect(mocks.metadata[controlPath]).toEqual(
       expect.objectContaining({
@@ -741,20 +723,14 @@ describe("dual-GM conflict ordering", () => {
 
     await deleteTrackFromRoomLibrary(trackA)
 
-    await writeControlAndProgress(
-      {
-        id: "late-play-a",
-        time: new Date("2026-01-01T00:00:03.000Z"),
-        action: Action.Play,
-        offset: 0,
-        duration: 400,
-        track: trackA,
-      },
-      {
-        [trackA.url]: 0,
-        [trackB.url]: 0,
-      },
-    )
+    await writeControlAndProgress({
+      id: "late-play-a",
+      time: new Date("2026-01-01T00:00:03.000Z"),
+      action: Action.Play,
+      offset: 0,
+      duration: 400,
+      track: trackA,
+    })
 
     expect(mocks.metadata[libraryPath]).toEqual([{ ...trackB, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()

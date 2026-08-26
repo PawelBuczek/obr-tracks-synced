@@ -119,9 +119,6 @@ describe("conflict invariants", () => {
         track,
       },
       {
-        [track.url]: 11,
-      },
-      {
         expectedControlId: "old-id",
       },
     )
@@ -165,20 +162,14 @@ describe("conflict invariants", () => {
 
     await deleteTrackFromRoomLibrary(removedTrack)
 
-    await writeControlAndProgress(
-      {
-        id: "late-play",
-        time: new Date("2026-01-01T00:00:03.000Z"),
-        action: Action.Play,
-        offset: 2,
-        duration: 300,
-        track: removedTrack,
-      },
-      {
-        [removedTrack.url]: 2,
-        [survivorTrack.url]: 0,
-      },
-    )
+    await writeControlAndProgress({
+      id: "late-play",
+      time: new Date("2026-01-01T00:00:03.000Z"),
+      action: Action.Play,
+      offset: 2,
+      duration: 300,
+      track: removedTrack,
+    })
 
     expect(mocks.metadata[libraryPath]).toEqual([{ ...survivorTrack, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()

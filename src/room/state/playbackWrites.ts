@@ -22,7 +22,6 @@ function withTrackOffset(library: Track[], track: Track, offset: number): Track[
 
 export function writeControlAndProgress(
   control: RoomControlMessage,
-  _progress?: unknown,
   options?: {
     expectedControlId?: string
     saveTrack?: Track
@@ -61,10 +60,7 @@ export function writeControlAndProgress(
   })
 }
 
-export function clearControlAndWriteProgress(
-  _progress?: unknown,
-  track?: Track,
-) {
+export function clearControlAndWriteProgress(track?: Track) {
   return updateMetadataWithCurrent(current => {
     const currentLibrary = extractLibrary(current)
     const nextLibrary = track

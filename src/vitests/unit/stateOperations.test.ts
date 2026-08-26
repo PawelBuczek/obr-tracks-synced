@@ -92,16 +92,12 @@ describe("room state operations", () => {
       },
     }
 
-    const progress = {
-      "https://example.com/track.mp3": 5,
-    }
-
     mocks.metadata = {
       [libraryPath]: [{ ...control.track, offset: 0 }],
       [progressPath]: {},
     }
 
-    await writeControlAndProgress(control, progress)
+    await writeControlAndProgress(control)
 
     expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
     expect(mocks.metadata[controlPath]).toEqual(control)
@@ -125,16 +121,12 @@ describe("room state operations", () => {
       },
     }
 
-    const progress = {
-      "https://example.com/track.mp3": 5,
-    }
-
     mocks.metadata = {
       [libraryPath]: [],
       [progressPath]: {},
     }
 
-    await writeControlAndProgress(control, progress)
+    await writeControlAndProgress(control)
 
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toEqual({})
@@ -154,10 +146,6 @@ describe("room state operations", () => {
       },
     }
 
-    const progress = {
-      "https://example.com/track.mp3": 7,
-    }
-
     mocks.metadata = {
       [libraryPath]: [control.track],
       [controlPath]: {
@@ -170,7 +158,7 @@ describe("room state operations", () => {
       },
     }
 
-    await writeControlAndProgress(control, progress, {
+    await writeControlAndProgress(control, {
       expectedControlId: "msg-old",
     })
 
@@ -209,18 +197,14 @@ describe("room state operations", () => {
       },
     ]
 
-    const progress = {
-      "https://example.com/track.mp3": 9,
-    }
-
-    await writeLibraryAndProgress(library, progress)
+    await writeLibraryAndProgress(library)
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
       [libraryPath]: library,
       [progressPath]: undefined,
     })
 
-    await writeLibraryAndProgressAndClearControl(library, progress)
+    await writeLibraryAndProgressAndClearControl(library)
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
       [libraryPath]: library,
@@ -228,7 +212,7 @@ describe("room state operations", () => {
       [progressPath]: undefined,
     })
 
-    await clearControlAndWriteProgress(progress)
+    await clearControlAndWriteProgress()
 
     expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
     expect(mocks.metadata[controlPath]).toBeUndefined()
@@ -419,7 +403,6 @@ describe("room state operations", () => {
     expect(outcome.changed).toBe(true)
     expect(outcome.shouldStopPlayback).toBe(true)
     expect(outcome.library).toEqual([])
-    expect(outcome.progress).toEqual({})
     expect(mocks.metadata[libraryPath]).toEqual([])
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })

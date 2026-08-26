@@ -6,9 +6,7 @@ import {
   extractControlMessage,
   extractCustomTags,
   extractLibrary,
-  extractProgressMap,
   libraryPath,
-  progressPath,
 } from "../../room/metadataSchema"
 
 describe("metadata schema", () => {
@@ -58,20 +56,6 @@ describe("metadata schema", () => {
         offset: 12,
       },
     ])
-  })
-
-  it("extracts progress map and ignores invalid offsets", () => {
-    const metadata = {
-      [progressPath]: {
-        "https://example.com/ok.mp3": 12,
-        "https://example.com/negative.mp3": -5,
-        "https://example.com/string.mp3": "10",
-      },
-    }
-
-    expect(extractProgressMap(metadata)).toEqual({
-      "https://example.com/ok.mp3": 12,
-    })
   })
 
   it("keeps the library array order as the canonical ordering", () => {

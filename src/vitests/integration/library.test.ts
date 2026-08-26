@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   updateMetadata: vi.fn(),
   updateMetadataWithCurrent: vi.fn(),
   stopPlayback: vi.fn(),
-  removeTrackProgress: vi.fn((progress) => progress),
   metadata: {},
 }))
 
@@ -48,15 +47,6 @@ vi.mock("../../room/mb", async () => {
   return {
     ...actual,
     stopPlayback: mocks.stopPlayback,
-  }
-})
-
-vi.mock("../../domain/playback", async () => {
-  const actual = await vi.importActual("../../domain/playback")
-
-  return {
-    ...actual,
-    removeTrackProgress: mocks.removeTrackProgress,
   }
 })
 

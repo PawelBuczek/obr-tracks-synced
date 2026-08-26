@@ -1,5 +1,5 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
-import { Action, TrackProgressMap } from "../domain/playback"
+import { Action } from "../domain/playback"
 import {
   CUSTOM_TAG_ID_MAX,
   CUSTOM_TAG_ID_MIN,
@@ -122,21 +122,6 @@ export function extractLibrary(metadata: Metadata): Track[] {
   return value
     .map(track => parseTrack(track))
     .filter((track): track is Track => track !== undefined)
-}
-
-export function extractProgressMap(metadata: Metadata): TrackProgressMap {
-  const value = metadata[progressPath]
-  if (!isRecord(value)) {
-    return {}
-  }
-
-  const progress: TrackProgressMap = {}
-  Object.entries(value).forEach(([url, offset]) => {
-    if (canonicalizeTrackUrl(url) && isFiniteNumber(offset) && offset >= 0) {
-      progress[canonicalizeTrackUrl(url)] = offset
-    }
-  })
-  return progress
 }
 
 export function extractControlMessage(

@@ -5,59 +5,12 @@ export enum Action {
   Pause,
 }
 
-export interface TrackProgressMap {
-  [trackUrl: string]: number
-}
-
 export function getPlaybackOffset(
   offset: number,
   time: Date,
   referenceTime: Date = new Date(),
 ): number {
   return offset + (referenceTime.getTime() - time.getTime()) / 1000
-}
-
-export function prepareTrackSelection(
-  track: Track,
-  progressMap: TrackProgressMap,
-  currentTrack?: Track,
-  currentOffset?: number,
-  currentAction?: Action,
-): { progressMap: TrackProgressMap; offset: number } {
-  const canonicalTrackUrl = track.url
-  const shouldSaveCurrentTrackProgress =
-    currentTrack !== undefined &&
-    currentOffset !== undefined &&
-    currentAction === Action.Play &&
-    currentTrack.url !== canonicalTrackUrl
-
-  const nextProgressMap = shouldSaveCurrentTrackProgress
-    ? { ...progressMap, [currentTrack.url]: currentOffset }
-    : progressMap
-
-  return {
-    progressMap: nextProgressMap,
-    offset: nextProgressMap[canonicalTrackUrl] ?? 0,
-  }
-}
-
-export function resetTrackProgress(
-  progressMap: TrackProgressMap | undefined,
-  track: Track,
-): TrackProgressMap {
-  return {
-    ...progressMap,
-    [track.url]: 0,
-  }
-}
-
-export function removeTrackProgress(
-  progressMap: TrackProgressMap,
-  track: Track,
-): TrackProgressMap {
-  const nextProgressMap = { ...progressMap }
-  delete nextProgressMap[track.url]
-  return nextProgressMap
 }
 
 export function getTrackInteractionAction(

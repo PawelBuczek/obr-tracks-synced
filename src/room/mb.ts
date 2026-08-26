@@ -168,7 +168,7 @@ export function play(track: Track) {
       currentMessage?.action === Action.Play && currentMessage
         ? getCurrentOffset(currentMessage)
         : undefined
-    writeControlAndProgress(newPlayMessage(fixed, audio.duration, offset), undefined, {
+    writeControlAndProgress(newPlayMessage(fixed, audio.duration, offset), {
       saveTrack: previousTrack,
       saveOffset: previousOffset,
     })
@@ -183,7 +183,7 @@ export function pause() {
   }
 
   const expectedControlId = currentMessage.id
-  writeControlAndProgress(pauseCurrentMessage(), undefined, {
+  writeControlAndProgress(pauseCurrentMessage(), {
     expectedControlId,
   })
 }
@@ -194,7 +194,7 @@ export function resume() {
   }
 
   const expectedControlId = currentMessage.id
-  writeControlAndProgress(resumeCurrentMessage(), undefined, {
+  writeControlAndProgress(resumeCurrentMessage(), {
     expectedControlId,
   })
 }
@@ -203,13 +203,12 @@ export function stop() {
   const activeTrack = currentMessage?.track
   stopPlayback()
 
-  clearControlAndWriteProgress(undefined, activeTrack)
+  clearControlAndWriteProgress(activeTrack)
 }
 
 export function stopPlayback() {
-
-  if (currentMessage) {
-  }
+  // Local playback stops reactively when the control message is cleared;
+  // this hook exists for callers/tests to signal that intent explicitly.
 }
 
 export async function seekToOffset(offsetSeconds: number) {
@@ -232,7 +231,7 @@ export async function seekToOffset(offsetSeconds: number) {
     updatedMessage.action = Action.Pause
 
     const expectedControlId = currentMessage.id
-    writeControlAndProgress(updatedMessage, undefined, {
+    writeControlAndProgress(updatedMessage, {
       expectedControlId,
     })
   } else {
@@ -245,7 +244,7 @@ export async function seekToOffset(offsetSeconds: number) {
     updatedMessage.action = Action.Play
 
     const expectedControlId = currentMessage.id
-    writeControlAndProgress(updatedMessage, undefined, {
+    writeControlAndProgress(updatedMessage, {
       expectedControlId,
     })
   }

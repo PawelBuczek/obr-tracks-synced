@@ -1,5 +1,4 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
-import { TrackProgressMap } from "../../domain/playback"
 import { isSameTrack, Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
 import { cleanTrack } from "../../shared/utils"
@@ -15,7 +14,6 @@ import { buildMergedLibrary, getUpdatedControlTrack } from "./libraryMutationPol
 export interface LibraryMutationOutcome {
   changed: boolean
   library: Track[]
-  progress: TrackProgressMap
   shouldStopPlayback: boolean
   rejections?: LibraryMergeRejection[]
 }
@@ -42,7 +40,6 @@ export async function mergeTracksIntoRoomLibrary(
   let outcome: LibraryMutationOutcome = {
     changed: false,
     library: [],
-    progress: {},
     shouldStopPlayback: false,
   }
 
@@ -93,7 +90,6 @@ export async function mergeTracksIntoRoomLibrary(
     outcome = {
       changed,
       library: nextLibrary,
-      progress: {},
       shouldStopPlayback: false,
       ...(rejections.length > 0 ? { rejections } : {}),
     }
@@ -118,7 +114,6 @@ export async function deleteTrackFromRoomLibrary(
   let outcome: LibraryMutationOutcome = {
     changed: false,
     library: [],
-    progress: {},
     shouldStopPlayback: false,
   }
 
@@ -130,7 +125,6 @@ export async function deleteTrackFromRoomLibrary(
       outcome = {
         changed: false,
         library: currentLibrary,
-        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -145,7 +139,6 @@ export async function deleteTrackFromRoomLibrary(
     outcome = {
       changed: true,
       library: nextLibrary,
-      progress: {},
       shouldStopPlayback: trackIsPlaying,
     }
 
@@ -170,7 +163,6 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
   let outcome: LibraryMutationOutcome = {
     changed: false,
     library: [],
-    progress: {},
     shouldStopPlayback: false,
   }
 
@@ -186,7 +178,6 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
       outcome = {
         changed: false,
         library: [],
-        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -195,7 +186,6 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
     outcome = {
       changed: true,
       library: [],
-      progress: {},
       shouldStopPlayback: true,
     }
 
@@ -216,7 +206,6 @@ export async function moveTrackInRoomLibrary(
   let outcome: LibraryMutationOutcome = {
     changed: false,
     library: [],
-    progress: {},
     shouldStopPlayback: false,
   }
 
@@ -230,7 +219,6 @@ export async function moveTrackInRoomLibrary(
       outcome = {
         changed: false,
         library: currentLibrary,
-        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -242,7 +230,6 @@ export async function moveTrackInRoomLibrary(
       outcome = {
         changed: false,
         library: currentLibrary,
-        progress: {},
         shouldStopPlayback: false,
       }
       return undefined
@@ -257,7 +244,6 @@ export async function moveTrackInRoomLibrary(
     outcome = {
       changed: true,
       library: nextLibrary,
-      progress: {},
       shouldStopPlayback: false,
     }
 
