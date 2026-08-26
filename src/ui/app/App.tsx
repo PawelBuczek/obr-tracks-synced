@@ -10,17 +10,14 @@ import OBR from "@owlbear-rodeo/sdk"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
 import {
-  getLibrarySortMode,
   moveTrackDownInLibrary,
   moveTrackUpInLibrary,
-  onLibrarySortModeChange,
   onLibraryChange,
-  setLibrarySortMode,
 } from "../../room/library"
-import { LibrarySortMode } from "../../room/metadataSchema"
 import { BUILT_IN_TAGS, formatTrackTag } from "../../domain/tags"
 import { Track } from "../../domain/track"
 import { setMute as persistMute } from "../../shared/mute"
+import { getSortMode, LibrarySortMode, setSortMode } from "../../shared/sortMode"
 import { getVolume, setVolume as persistVolume } from "../../shared/volume"
 import { ActionPopover, MuteButton, VolumeSlider } from "../controls"
 import {
@@ -52,24 +49,23 @@ export function App() {
   const [searchResults, setSearchResults] = useState<Fuse.FuseResult<Track>[]>(
     [],
   )
-  const [sortMode, setSortMode] = useState<LibrarySortMode>(() =>
-    getLibrarySortMode(),
+  const [sortMode, setSortModeState] = useState<LibrarySortMode>(() =>
+    getSortMode(),
   )
-
-  useEffect(() => {
-    return onLibrarySortModeChange(setSortMode)
-  }, [])
 
   const cycleSortMode = () => {
     switch (sortMode) {
       case LibrarySortMode.NotSorted:
-        setLibrarySortMode(LibrarySortMode.Ascending)
+        setSortMode(LibrarySortMode.Ascending)
+        setSortModeState(LibrarySortMode.Ascending)
         return
       case LibrarySortMode.Ascending:
-        setLibrarySortMode(LibrarySortMode.Descending)
+        setSortMode(LibrarySortMode.Descending)
+        setSortModeState(LibrarySortMode.Descending)
         return
       default:
-        setLibrarySortMode(LibrarySortMode.NotSorted)
+        setSortMode(LibrarySortMode.NotSorted)
+        setSortModeState(LibrarySortMode.NotSorted)
     }
   }
 

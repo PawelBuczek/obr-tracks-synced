@@ -2,8 +2,8 @@ import SortByAlphaRoundedIcon from "@mui/icons-material/SortByAlphaRounded"
 import { IconButton, Stack, TextField, Tooltip } from "@mui/material"
 import Fuse from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
-import { LibrarySortMode } from "../../room/metadataSchema"
 import { Track } from "../../domain/track"
+import { LibrarySortMode } from "../../shared/sortMode"
 
 interface Props {
   trackLibrary: Track[]

@@ -6,13 +6,6 @@ import { key } from "../shared/key"
 export const controlPath = key("control")
 export const progressPath = key("progress")
 export const libraryPath = key("library")
-export const librarySortModePath = key("librarySortMode")
-
-export enum LibrarySortMode {
-  NotSorted = "not_sorted",
-  Ascending = "ascending",
-  Descending = "descending",
-}
 
 export interface RoomControlMessage {
   id: string
@@ -29,20 +22,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value)
-}
-
-export function extractLibrarySortMode(metadata: Metadata): LibrarySortMode {
-  const value = metadata[librarySortModePath]
-
-  if (
-    value === LibrarySortMode.NotSorted ||
-    value === LibrarySortMode.Ascending ||
-    value === LibrarySortMode.Descending
-  ) {
-    return value
-  }
-
-  return LibrarySortMode.NotSorted
 }
 
 function parseTrack(value: unknown): Track | undefined {

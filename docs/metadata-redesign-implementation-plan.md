@@ -1,8 +1,8 @@
 # Metadata Redesign Implementation Plan
 
-Status: **Chunk 5 is completed and verified; later redesign chunks remain pending**
+Status: **Chunk 6 is completed and verified; later redesign chunks remain pending**
 
-Validation note: the current repo state has been fully verified with the full project checks: `npm run test:all`, `npm run build`, and `npm run test:e2e` all pass. The row-offset migration has been completed and validated, and the plan is therefore kept accurate to the current implementation while later redesign chunks beyond the already-validated baseline remain explicitly pending.
+Validation note: the current repo state has been fully verified with `npm run test:all` and `npm run build`. The row-offset migration and local sort-mode migration have been completed and validated, while later redesign chunks remain explicitly pending.
 
 This plan implements the decisions in [metadata-redesign-explanation.md](metadata-redesign-explanation.md):
 
@@ -186,7 +186,7 @@ npm run test:all
 npm run build
 ```
 
-## Chunk 6: Make sort mode local-only
+## Chunk 6: Make sort mode local-only — ✅ Completed and verified
 
 **Files/surfaces:** `src/ui/app/App.tsx`, `src/ui/library/TrackSearch.tsx`, `src/ui/library/TrackList.tsx`, `src/room/state/libraryWrites.ts`, local-storage helpers, UI tests.
 
@@ -195,6 +195,8 @@ npm run build
 - Keep sorting as a viewer-side projection; never reorder or rewrite the shared library merely to display alphabetically.
 - Preserve the existing UI behavior that disables manual reorder controls while alphabetical display mode is active.
 - Handle invalid or unavailable local storage by falling back to `not_sorted`.
+
+**Implementation:** `src/shared/sortMode.ts` stores the viewer preference locally. Room metadata no longer extracts, subscribes to, or writes `librarySortMode`.
 
 **Tests to add/update:**
 
@@ -206,7 +208,7 @@ npm run build
 **Tests to run:**
 
 ```text
-npx vitest run src/vitests/unit/App.playerVisibility.test.tsx src/vitests/integration/library.test.ts
+npx vitest run src/vitests/unit/App.playerVisibility.test.tsx src/vitests/unit/sortMode.test.ts src/vitests/integration/library.test.ts
 npm run test:all
 ```
 

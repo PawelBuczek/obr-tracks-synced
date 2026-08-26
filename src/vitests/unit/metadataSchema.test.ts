@@ -4,11 +4,8 @@ import {
   controlPath,
   extractControlMessage,
   extractLibrary,
-  extractLibrarySortMode,
   extractProgressMap,
-  LibrarySortMode,
   libraryPath,
-  librarySortModePath,
   progressPath,
 } from "../../room/metadataSchema"
 
@@ -76,22 +73,6 @@ describe("metadata schema", () => {
       "First",
       "Second",
     ])
-  })
-
-  it("extracts persisted library sort mode with not-sorted fallback", () => {
-    expect(extractLibrarySortMode({})).toEqual(LibrarySortMode.NotSorted)
-
-    expect(
-      extractLibrarySortMode({
-        [librarySortModePath]: LibrarySortMode.Ascending,
-      }),
-    ).toEqual(LibrarySortMode.Ascending)
-
-    expect(
-      extractLibrarySortMode({
-        [librarySortModePath]: LibrarySortMode.Descending,
-      }),
-    ).toEqual(LibrarySortMode.Descending)
   })
 
   it("extracts a valid control message without a track offset", () => {

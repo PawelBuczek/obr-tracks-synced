@@ -6,10 +6,7 @@ import { ObrError } from "../shared/errors"
 import { stopPlayback } from "./mb"
 import {
   extractLibrary,
-  extractLibrarySortMode,
   libraryPath,
-  librarySortModePath,
-  LibrarySortMode,
 } from "./metadataSchema"
 import {
   clearRoomLibrary,
@@ -17,26 +14,18 @@ import {
   mergeTracksIntoRoomLibrary,
   moveTrackInRoomLibrary,
 } from "./state/libraryMutations"
-import {
-  writeLibrarySortMode,
-  writeLibrary,
-} from "./state/libraryWrites"
+import { writeLibrary } from "./state/libraryWrites"
 import { getMetadataSize } from "../infra/metadataHelper"
 
 const eventEmitter = new EventEmitter()
 
 let cachedLibrary: Track[] = []
-let cachedSortMode: LibrarySortMode = LibrarySortMode.NotSorted
 
 let roomReady = false
 let roomSyncPromise: Promise<void> | undefined
 
 function push() {
   eventEmitter.emit(libraryPath, getLibrary())
-}
-
-function pushSortMode() {
-  eventEmitter.emit(librarySortModePath, getLibrarySortMode())
 }
 
 function runWhenRoomReady(): Promise<void> {
@@ -58,7 +47,6 @@ function runWhenRoomReady(): Promise<void> {
 
 function readMetadata(metadata: Metadata) {
   const library = extractLibrary(metadata)
-  cachedSortMode = extractLibrarySortMode(metadata)
   cachedLibrary = library
 }
 
@@ -101,13 +89,11 @@ function initializeRoomSync(): Promise<void> {
 
         readMetadata(metadata)
         push()
-        pushSortMode()
       })
 
       OBR.room.getMetadata().then(metadata => {
         readMetadata(metadata)
         push()
-        pushSortMode()
 
         resolve()
       })
@@ -169,10 +155,6 @@ export function getLibrary(): Track[] {
   return getStoredLibrary()
 }
 
-export function getLibrarySortMode(): LibrarySortMode {
-  return cachedSortMode
-}
-
 export function clearLibrary() {
   console.trace("[library] clearLibrary")
 
@@ -210,31 +192,6 @@ export function moveTrackDownInLibrary(track: Track) {
       push()
     }
   })
-}
-
-export function setLibrarySortMode(mode: LibrarySortMode) {
-  return roomSyncReady.then(async () => {
-    const changed = await writeLibrarySortMode(mode)
-
-    if (!changed) {
-      return
-    }
-
-    cachedSortMode = mode
-    pushSortMode()
-  })
-}
-
-export function onLibrarySortModeChange(
-  callback: (mode: LibrarySortMode) => void,
-): () => void {
-  roomSyncReady.then(() => {
-    callback(getLibrarySortMode())
-  })
-
-  eventEmitter.addListener(librarySortModePath, callback)
-
-  return () => eventEmitter.removeListener(librarySortModePath, callback)
 }
 
 export function onLibraryChange(

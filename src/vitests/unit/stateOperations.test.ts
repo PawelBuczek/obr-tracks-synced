@@ -33,7 +33,6 @@ import {
   writeControlAndProgress,
 } from "../../room/state/playbackWrites"
 import {
-  writeLibrarySortMode,
   writeLibrary,
   writeLibraryAndProgress,
   writeLibraryAndProgressAndClearControl,
@@ -46,9 +45,7 @@ import {
 } from "../../room/state/libraryMutations"
 import {
   controlPath,
-  LibrarySortMode,
   libraryPath,
-  librarySortModePath,
   progressPath,
 } from "../../room/metadataSchema"
 
@@ -546,25 +543,4 @@ describe("room state operations", () => {
     ])
   })
 
-  it("writes library sort mode metadata", async () => {
-    mocks.metadata = {
-      [librarySortModePath]: LibrarySortMode.NotSorted,
-    }
-
-    const changed = await writeLibrarySortMode(LibrarySortMode.Ascending)
-
-    expect(changed).toBe(true)
-    expect(mocks.metadata[librarySortModePath]).toBe(LibrarySortMode.Ascending)
-  })
-
-  it("no-ops writing library sort mode when unchanged", async () => {
-    mocks.metadata = {
-      [librarySortModePath]: LibrarySortMode.Descending,
-    }
-
-    const changed = await writeLibrarySortMode(LibrarySortMode.Descending)
-
-    expect(changed).toBe(false)
-    expect(mocks.metadata[librarySortModePath]).toBe(LibrarySortMode.Descending)
-  })
 })
