@@ -270,6 +270,28 @@ describe("room state operations", () => {
     expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
   })
 
+  it("adds valid tracks and reports tracks with URLs over 200 characters", async () => {
+    const tracks = Array.from({ length: 30 }, (_, index) => ({
+      title: `Track ${index + 1}`,
+      url:
+        index < 13
+          ? ` HTTPS://EXAMPLE.COM/${"a".repeat(190)}-${index}.mp3 `
+          : ` HTTPS://EXAMPLE.COM/track-${index + 1}.mp3 `,
+      tags: [],
+    }))
+
+    const outcome = await mergeTracksIntoRoomLibrary(tracks)
+
+    expect(outcome.library).toHaveLength(17)
+    expect(outcome.library.map(track => track.title)).toEqual(
+      tracks.slice(13).map(track => `Track ${tracks.indexOf(track) + 1}`),
+    )
+    expect(outcome.rejections).toEqual([
+      { reason: "url-too-long", count: 13 },
+    ])
+    expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
+  })
+
   it("treats dropbox url variants as one track during merge updates", async () => {
     const shareUrl = "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0"
     const directUrl = "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1"

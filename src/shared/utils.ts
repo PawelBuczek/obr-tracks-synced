@@ -48,6 +48,15 @@ export interface CheckResult<F, V> {
   validation?: V
 }
 
+export function cleanTrack(track: Track): Track {
+  return {
+    ...track,
+    title: track.title.trim(),
+    url: track.url.replace(/\s/g, "").toLowerCase(),
+    tags: track.tags.filter(tag => tag).map(tag => tag.trim()),
+  }
+}
+
 export function checkTitle(title: string): CheckResult<string, string> {
   const fixed = title.trim()
   return { fixed, validation: fixed ? undefined : "Title can not be blank" }
@@ -84,12 +93,13 @@ export interface TrackValidation {
 export function checkTrack(
   track: Track,
 ): CheckResult<Track, TrackValidation | undefined> {
-  const { fixed: title, validation: titleValidation } = checkTitle(track.title)
-  const { fixed: url, validation: urlValidation } = checkUrl(track.url)
-  const { fixed: tags, validation: tagsValidation } = checkTags(track.tags)
+  const fixed = cleanTrack(track)
+  const { validation: titleValidation } = checkTitle(fixed.title)
+  const { validation: urlValidation } = checkUrl(fixed.url)
+  const { validation: tagsValidation } = checkTags(fixed.tags)
 
   return {
-    fixed: { title, url, tags },
+    fixed,
     validation:
       titleValidation || urlValidation || tagsValidation
         ? { titleValidation, urlValidation, tagsValidation }

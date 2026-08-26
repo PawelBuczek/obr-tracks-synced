@@ -19,27 +19,33 @@ import { CsvError } from "../../io/csv"
 
 interface Props {
   errors: CsvError[]
+  summaries?: string[]
   onClose(): void
 }
 
 export function CsvErrors(props: Props) {
-  const { errors, onClose } = props
+  const { errors, summaries = [], onClose } = props
   const theme = useTheme()
   return (
-    <Dialog fullWidth open={errors.length > 0} onClose={onClose}>
+    <Dialog fullWidth open={errors.length > 0 || summaries.length > 0} onClose={onClose}>
       <DialogTitle sx={{ flexGrow: 1 }}>
         <Stack direction={"row"} spacing={1} sx={{ alignItems: "center" }}>
           <ErrorOutlineRoundedIcon color="error" />
           <div>CSV Issues</div>
         </Stack>
       </DialogTitle>
-      <DialogContent sx={{ overflowY: "unset" }}>
+      {summaries.map(summary => (
+        <DialogContent key={summary}>
+          <DialogContentText>{summary}</DialogContentText>
+        </DialogContent>
+      ))}
+      {errors.length > 0 && <DialogContent sx={{ overflowY: "unset" }}>
         <DialogContentText variant="subtitle2">
           The following <b>rows numbers</b> have errors which prevent importing.
           Please fix them and try again.
         </DialogContentText>
-      </DialogContent>
-      <DialogContent
+      </DialogContent>}
+      {errors.length > 0 && <DialogContent
         sx={{
           paddingY: 0,
           backgroundColor: theme.palette.background.paper,
@@ -73,7 +79,7 @@ export function CsvErrors(props: Props) {
             ))}
           </TableBody>
         </Table>
-      </DialogContent>
+      </DialogContent>}
       <DialogActions>
         <Button onClick={onClose}>Ok</Button>
       </DialogActions>

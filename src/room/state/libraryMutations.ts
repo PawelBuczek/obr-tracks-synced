@@ -3,6 +3,7 @@ import { removeTrackProgress, TrackProgressMap } from "../../domain/playback"
 import { isSameTrack, Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
 import { ObrError } from "../../shared/errors"
+import { cleanTrack } from "../../shared/utils"
 import {
   controlPath,
   extractControlMessage,
@@ -21,11 +22,20 @@ export interface LibraryMutationOutcome {
   library: Track[]
   progress: TrackProgressMap
   shouldStopPlayback: boolean
+  rejections?: LibraryMergeRejection[]
+}
+
+export type LibraryMergeRejectionReason = "url-too-long"
+
+export interface LibraryMergeRejection {
+  reason: LibraryMergeRejectionReason
+  count: number
 }
 
 export type LibraryMoveDirection = "up" | "down"
 
 const LIBRARY_METADATA_SIZE_CAP_BYTES = 6 * 1024
+const MAX_TRACK_URL_LENGTH = 200
 
 function getLibraryMetadataSizeBytes(library: Track[]): number {
   return new TextEncoder().encode(JSON.stringify({ [libraryPath]: library })).length
@@ -44,10 +54,18 @@ export async function mergeTracksIntoRoomLibrary(
   await updateMetadataWithCurrent((current: Metadata) => {
     const currentLibrary = extractLibrary(current)
     const currentOrderMap = extractLibraryOrderMap(current)
+    const cleanedTracks = tracks.map(cleanTrack)
+    const rejectedTracks = cleanedTracks.filter(
+      track => track.url.length > MAX_TRACK_URL_LENGTH,
+    )
+    const acceptedTracks = cleanedTracks.filter(
+      track => track.url.length <= MAX_TRACK_URL_LENGTH,
+    )
+
     const { library: nextLibrary, orderMap: nextOrderMap } = buildMergedLibrary(
       currentLibrary,
       currentOrderMap,
-      tracks,
+      acceptedTracks,
     )
     const isAddingNewTrack = nextLibrary.length > currentLibrary.length
 
@@ -73,6 +91,13 @@ export async function mergeTracksIntoRoomLibrary(
       library: nextLibrary,
       progress,
       shouldStopPlayback: false,
+      ...(rejectedTracks.length > 0
+        ? {
+            rejections: [
+              { reason: "url-too-long" as const, count: rejectedTracks.length },
+            ],
+          }
+        : {}),
     }
 
     if (!changed) {

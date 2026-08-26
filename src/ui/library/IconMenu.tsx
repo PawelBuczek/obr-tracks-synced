@@ -17,11 +17,15 @@ import { useState } from "react"
 import { CsvError, TracksToCsv, csvToTracks } from "../../io/csv"
 import { analytics } from "../../infra/firebase"
 import { clearLibrary, getLibrary, mergeLibrary } from "../../room/library"
+import { LibraryMergeRejection } from "../../room/state/libraryMutations"
 import { ObrError } from "../../shared/errors"
 import { ConfirmPayload } from "./Confirm"
 import { CsvErrors } from "./CsvErrors"
 
-const importButton = (setErrors: (errors: CsvError[]) => void) => {
+const importButton = (
+  setErrors: (errors: CsvError[]) => void,
+  setSummaries: (summaries: string[]) => void,
+) => {
   const input = document.createElement("input")
   input.type = "file"
   input.accept = "text/csv"
@@ -36,11 +40,24 @@ const importButton = (setErrors: (errors: CsvError[]) => void) => {
       if (errors.length > 0) {
         setErrors(errors)
       } else {
-        mergeLibrary(tracks)
+        mergeLibrary(tracks).then(outcome => {
+          setSummaries(
+            (outcome?.rejections ?? []).map(formatLibraryRejection),
+          )
+        })
       }
     })
   }
   input.click()
+}
+
+function formatLibraryRejection(rejection: LibraryMergeRejection): string {
+  const trackLabel = rejection.count === 1 ? "track" : "tracks"
+
+  switch (rejection.reason) {
+    case "url-too-long":
+      return `${rejection.count} ${trackLabel} not added - URL over 200 characters long`
+  }
 }
 
 const exportButton = () => {
@@ -70,6 +87,7 @@ export function IconMenu(props: Props) {
   }
 
   const [csvErrors, setCsvErrors] = useState<CsvError[]>([])
+  const [csvSummaries, setCsvSummaries] = useState<string[]>([])
 
   const theme = useTheme()
   return (
@@ -100,7 +118,9 @@ export function IconMenu(props: Props) {
           <MenuItem
             onClick={() => {
               handleClose()
-              importButton(setCsvErrors)
+              setCsvErrors([])
+              setCsvSummaries([])
+              importButton(setCsvErrors, setCsvSummaries)
             }}
           >
             <ListItemIcon>
@@ -139,7 +159,14 @@ export function IconMenu(props: Props) {
           </MenuItem>
         </MenuList>
       </Menu>
-      <CsvErrors errors={csvErrors} onClose={() => setCsvErrors([])} />
+      <CsvErrors
+        errors={csvErrors}
+        summaries={csvSummaries}
+        onClose={() => {
+          setCsvErrors([])
+          setCsvSummaries([])
+        }}
+      />
     </>
   )
 }

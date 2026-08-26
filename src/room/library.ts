@@ -156,6 +156,7 @@ export async function mergeLibrary(tracks: Track[]) {
 
     const metadataSizeAfterWrite = await getMetadataSize()
     console.log("metadataSizeAfterWriteLibrarty", metadataSizeAfterWrite)
+    return outcome
   } catch (error) {
     // Keep local cache consistent with room state on validation failures.
     await refreshMetadataFromRoom()
