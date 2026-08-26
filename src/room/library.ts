@@ -2,6 +2,7 @@ import OBR, { Metadata } from "@owlbear-rodeo/sdk"
 import { EventEmitter } from "events"
 import { Track } from "../domain/track"
 import { checkTrack } from "../shared/utils"
+import { ObrError } from "../shared/errors"
 import { stopPlayback } from "./mb"
 import {
   extractLibrary,
@@ -124,7 +125,10 @@ const roomSyncReady = initializeRoomSync()
 export function addTrackToLibrary(track: Track) {
 
   return roomSyncReady.then(async () => {
-    await mergeLibrary([track])
+    const outcome = await mergeLibrary([track])
+    if (outcome?.rejections?.some(r => r.reason === "library-over-limit")) {
+      throw new ObrError("Cannot add track: library metadata is over 6 KB limit")
+    }
   })
 }
 

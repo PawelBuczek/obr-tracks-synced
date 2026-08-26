@@ -57,6 +57,8 @@ function formatLibraryRejection(rejection: LibraryMergeRejection): string {
   switch (rejection.reason) {
     case "url-too-long":
       return `${rejection.count} ${trackLabel} not added - URL over 200 characters long`
+    case "library-over-limit":
+      return `${rejection.count} ${trackLabel} not added - over 6 KB library limit already`
   }
 }
 

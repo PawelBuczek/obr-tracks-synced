@@ -41,8 +41,14 @@ vi.mock("../../infra/metadataHelper", () => ({
 }))
 
 import { csvToTracks, TracksToCsv } from "../../io/csv"
+import fixtureCsv from "./fixtures/large-import-100-tracks.csv?raw"
 import { Track } from "../../domain/track"
-import { addTrackToLibrary, getLibrary, clearLibrary } from "../../room/library"
+import {
+  addTrackToLibrary,
+  clearLibrary,
+  getLibrary,
+  mergeLibrary,
+} from "../../room/library"
 import { key } from "../../shared/key"
 
 const libraryPath = key("library")
@@ -162,6 +168,22 @@ describe("CSV round-trip simulation", () => {
       )
       expect(matchingTrack).toBeDefined()
     }
+  })
+
+  it("imports the large 100-track fixture into the library", async () => {
+    const { tracks, errors } = csvToTracks(fixtureCsv)
+
+    expect(errors).toEqual([])
+    expect(tracks).toHaveLength(100)
+
+    const outcome = await mergeLibrary(tracks)
+
+    expect(outcome?.rejections).toEqual([
+      { reason: "url-too-long", count: 1 },
+      { reason: "library-over-limit", count: 58 },
+    ])
+    expect(getLibrary()).toHaveLength(41)
+    expect(getLibrary()).not.toContainEqual(tracks[1])
   })
 
   it("handles special characters and unicode in track names during csv round-trip", async () => {

@@ -2,7 +2,6 @@ import { Metadata } from "@owlbear-rodeo/sdk"
 import { removeTrackProgress, TrackProgressMap } from "../../domain/playback"
 import { isSameTrack, Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
-import { ObrError } from "../../shared/errors"
 import { cleanTrack } from "../../shared/utils"
 import {
   controlPath,
@@ -25,7 +24,7 @@ export interface LibraryMutationOutcome {
   rejections?: LibraryMergeRejection[]
 }
 
-export type LibraryMergeRejectionReason = "url-too-long"
+export type LibraryMergeRejectionReason = "url-too-long" | "library-over-limit"
 
 export interface LibraryMergeRejection {
   reason: LibraryMergeRejectionReason
@@ -62,18 +61,25 @@ export async function mergeTracksIntoRoomLibrary(
       track => track.url.length <= MAX_TRACK_URL_LENGTH,
     )
 
-    const { library: nextLibrary, orderMap: nextOrderMap } = buildMergedLibrary(
-      currentLibrary,
-      currentOrderMap,
-      acceptedTracks,
-    )
-    const isAddingNewTrack = nextLibrary.length > currentLibrary.length
+    let nextLibrary = currentLibrary
+    let nextOrderMap = currentOrderMap
+    let overLimitCount = 0
 
-    if (
-      isAddingNewTrack &&
-      getLibraryMetadataSizeBytes(currentLibrary) > LIBRARY_METADATA_SIZE_CAP_BYTES
-    ) {
-      throw new ObrError("Cannot add track: library metadata is over 6 KB limit")
+    for (const [index, track] of acceptedTracks.entries()) {
+      const candidate = buildMergedLibrary(nextLibrary, nextOrderMap, [track])
+      const isAddingNewTrack = candidate.library.length > nextLibrary.length
+
+      if (
+        isAddingNewTrack &&
+        getLibraryMetadataSizeBytes(candidate.library) >
+          LIBRARY_METADATA_SIZE_CAP_BYTES
+      ) {
+        overLimitCount = acceptedTracks.length - index
+        break
+      }
+
+      nextLibrary = candidate.library
+      nextOrderMap = candidate.orderMap
     }
 
     const progress = extractProgressMap(current)
@@ -86,18 +92,20 @@ export async function mergeTracksIntoRoomLibrary(
       JSON.stringify(nextOrderMap) !== JSON.stringify(currentOrderMap)
     const changed = libraryChanged || orderChanged || nextControl !== undefined
 
+    const rejections: LibraryMergeRejection[] = []
+    if (rejectedTracks.length > 0) {
+      rejections.push({ reason: "url-too-long", count: rejectedTracks.length })
+    }
+    if (overLimitCount > 0) {
+      rejections.push({ reason: "library-over-limit", count: overLimitCount })
+    }
+
     outcome = {
       changed,
       library: nextLibrary,
       progress,
       shouldStopPlayback: false,
-      ...(rejectedTracks.length > 0
-        ? {
-            rejections: [
-              { reason: "url-too-long" as const, count: rejectedTracks.length },
-            ],
-          }
-        : {}),
+      ...(rejections.length > 0 ? { rejections } : {}),
     }
 
     if (!changed) {
