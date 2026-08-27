@@ -62,7 +62,12 @@ vi.mock("../../infra/metadataHelper", () => ({
 
 import type { Message } from "../../room/mb"
 import { Action } from "../../room/mb"
-import { controlPath, libraryPath, progressPath } from "../../room/metadataSchema"
+import {
+  controlPath,
+  encodeLibrary,
+  libraryPath,
+  progressPath,
+} from "../../room/metadataSchema"
 
 type Client = {
   name: string
@@ -157,7 +162,7 @@ describe("multi-client room sync simulation", () => {
     }
 
     roomMocks.state.metadata = {
-      [libraryPath]: [trackOne, trackTwo],
+      [libraryPath]: encodeLibrary([trackOne, trackTwo]),
       [progressPath]: {
         [trackOne.url]: 12,
         [trackTwo.url]: 0,
@@ -195,7 +200,7 @@ describe("multi-client room sync simulation", () => {
     })
 
     roomMocks.setMetadata({
-      [libraryPath]: [trackOne, trackTwo],
+      [libraryPath]: encodeLibrary([trackOne, trackTwo]),
       [progressPath]: {
         [trackOne.url]: 45,
         [trackTwo.url]: 0,
@@ -256,7 +261,7 @@ describe("multi-client room sync simulation", () => {
     }
 
     roomMocks.state.metadata = {
-      [libraryPath]: [track],
+      [libraryPath]: encodeLibrary([track]),
       [progressPath]: {
         [track.url]: 14,
       },
@@ -313,7 +318,7 @@ describe("multi-client room sync simulation", () => {
     }
 
     roomMocks.state.metadata = {
-      [libraryPath]: [firstTrack, secondTrack],
+      [libraryPath]: encodeLibrary([firstTrack, secondTrack]),
       [progressPath]: {
         [firstTrack.url]: 19,
         [secondTrack.url]: 0,
@@ -342,7 +347,7 @@ describe("multi-client room sync simulation", () => {
     initialClient.unsubscribe()
 
     roomMocks.setMetadata({
-      [libraryPath]: [firstTrack, secondTrack],
+      [libraryPath]: encodeLibrary([firstTrack, secondTrack]),
       [progressPath]: {
         [firstTrack.url]: 19,
         [secondTrack.url]: 31,

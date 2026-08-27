@@ -10,6 +10,7 @@ import {
   getLibrary,
   mergeLibrary,
 } from "../../room/library"
+import { encodeLibrary } from "../../room/metadataSchema"
 import { key } from "../../shared/key"
 
 const mocks = vi.hoisted(() => ({
@@ -70,7 +71,7 @@ describe("CSV round-trip simulation", () => {
     vi.clearAllMocks()
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
     })
 
     mocks.updateMetadata.mockResolvedValue(undefined)
@@ -111,13 +112,13 @@ describe("CSV round-trip simulation", () => {
     ]
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
     })
 
     for (const track of originalTracks) {
       await addTrackToLibrary(track)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: getLibrary(),
+        [libraryPath]: encodeLibrary(getLibrary()),
       })
     }
 
@@ -137,7 +138,7 @@ describe("CSV round-trip simulation", () => {
 
     await clearLibrary()
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
     })
 
     expect(getLibrary()).toHaveLength(0)
@@ -149,7 +150,7 @@ describe("CSV round-trip simulation", () => {
     for (const track of importedTracks) {
       await addTrackToLibrary(track)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: getLibrary(),
+        [libraryPath]: encodeLibrary(getLibrary()),
       })
     }
 
@@ -183,9 +184,9 @@ describe("CSV round-trip simulation", () => {
 
     expect(outcome?.rejections).toEqual([
       { reason: "url-too-long", count: 1 },
-      { reason: "library-over-limit", count: 60 },
+      { reason: "library-over-limit", count: 55 },
     ])
-    expect(getLibrary()).toHaveLength(39)
+    expect(getLibrary()).toHaveLength(44)
     expect(getLibrary()).not.toContainEqual(normalizeExpectedTrack(tracks[1]))
   })
 
@@ -214,13 +215,13 @@ describe("CSV round-trip simulation", () => {
     ]
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
     })
 
     for (const track of specialTracks) {
       await addTrackToLibrary(track)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: getLibrary(),
+        [libraryPath]: encodeLibrary(getLibrary()),
       })
     }
 
@@ -254,13 +255,13 @@ describe("CSV round-trip simulation", () => {
     ]
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
     })
 
     for (const track of tracksWithTags) {
       await addTrackToLibrary(track)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: getLibrary(),
+        [libraryPath]: encodeLibrary(getLibrary()),
       })
     }
 
