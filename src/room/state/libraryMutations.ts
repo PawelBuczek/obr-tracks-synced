@@ -4,6 +4,7 @@ import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
 import { cleanTrack } from "../../shared/utils"
 import {
   controlPath,
+  encodeLibrary,
   extractControlMessage,
   extractLibrary,
   libraryPath,
@@ -35,7 +36,9 @@ const MAX_LIBRARY_TRACKS = 200
 const MAX_TRACK_URL_LENGTH = 200
 
 function getLibraryMetadataSizeBytes(library: Track[]): number {
-  return new TextEncoder().encode(JSON.stringify({ [libraryPath]: library })).length
+  return new TextEncoder().encode(
+    JSON.stringify({ [libraryPath]: encodeLibrary(library) }),
+  ).length
 }
 
 export async function mergeTracksIntoRoomLibrary(
@@ -112,7 +115,7 @@ export async function mergeTracksIntoRoomLibrary(
     }
 
     return {
-      ...(libraryChanged ? { [libraryPath]: nextLibrary } : {}),
+      ...(libraryChanged ? { [libraryPath]: encodeLibrary(nextLibrary) } : {}),
       ...(nextControl ? { [controlPath]: nextControl } : {}),
       [progressPath]: undefined,
     }
@@ -157,14 +160,14 @@ export async function deleteTrackFromRoomLibrary(
 
     if (trackIsPlaying) {
       return {
-        [libraryPath]: nextLibrary,
+        [libraryPath]: encodeLibrary(nextLibrary),
         [controlPath]: undefined,
         [progressPath]: undefined,
       }
     }
 
     return {
-      [libraryPath]: nextLibrary,
+      [libraryPath]: encodeLibrary(nextLibrary),
       [progressPath]: undefined,
     }
   })
@@ -203,7 +206,7 @@ export async function clearRoomLibrary(): Promise<LibraryMutationOutcome> {
     }
 
     return {
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
       [controlPath]: undefined,
       [progressPath]: undefined,
     }
@@ -261,7 +264,7 @@ export async function moveTrackInRoomLibrary(
     }
 
     return {
-      [libraryPath]: nextLibrary,
+      [libraryPath]: encodeLibrary(nextLibrary),
       [progressPath]: undefined,
     }
   })

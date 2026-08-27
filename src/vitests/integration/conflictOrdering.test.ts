@@ -8,7 +8,7 @@ import {
 import {
   writeControlAndProgress,
 } from "../../room/state/playbackWrites"
-import { controlPath, libraryPath, progressPath } from "../../room/metadataSchema"
+import { controlPath, encodeLibrary, extractLibrary, libraryPath, progressPath } from "../../room/metadataSchema"
 
 const mocks = vi.hoisted(() => ({
   metadata: {} as Record<string, unknown>,
@@ -64,7 +64,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [original],
+      [libraryPath]: encodeLibrary([original]),
       [progressPath]: {
         [original.url]: 15,
       },
@@ -81,7 +81,7 @@ describe("dual-GM conflict ordering", () => {
     ])
 
     expect(mergeOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Renamed",
         url: original.url,
@@ -100,7 +100,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [original],
+      [libraryPath]: encodeLibrary([original]),
       [progressPath]: {
         [original.url]: 15,
       },
@@ -118,7 +118,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(mergeOutcome.changed).toBe(true)
     expect(clearOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(extractLibrary(mocks.metadata)).toEqual([])
     expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
@@ -131,7 +131,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [original],
+      [libraryPath]: encodeLibrary([original]),
       [progressPath]: {
         [original.url]: 22,
       },
@@ -157,7 +157,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(deleteOutcome.shouldStopPlayback).toBe(true)
     expect(mergeOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Renamed",
         url: original.url,
@@ -183,7 +183,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [shareUrlTrack],
+      [libraryPath]: encodeLibrary([shareUrlTrack]),
       [progressPath]: {
         [shareUrlTrack.url]: 22,
       },
@@ -212,7 +212,7 @@ describe("dual-GM conflict ordering", () => {
     expect(deleteOutcome.shouldStopPlayback).toBe(true)
     expect(firstReAddOutcome.changed).toBe(true)
     expect(secondReAddOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Renamed Twice",
         url: directUrlTrack.url,
@@ -226,13 +226,13 @@ describe("dual-GM conflict ordering", () => {
 
   it("rejects duplicate-title merge when another writer already created that title", async () => {
     mocks.metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Existing",
           url: "https://example.com/existing.mp3",
           tags: ["x"],
         },
-      ],
+      ]),
       [progressPath]: {},
     }
 
@@ -246,24 +246,25 @@ describe("dual-GM conflict ordering", () => {
       ]),
     ).rejects.toThrow("Track validation failed")
 
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Existing",
         url: "https://example.com/existing.mp3",
         tags: ["x"],
+        offset: 0,
       },
     ])
   })
 
   it("rename-then-conflicting-add keeps first writer and rejects second duplicate-title add", async () => {
     mocks.metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Track A",
           url: "https://example.com/a.mp3",
           tags: [],
         },
-      ],
+      ]),
       [progressPath]: {},
     }
 
@@ -286,7 +287,7 @@ describe("dual-GM conflict ordering", () => {
     ).rejects.toThrow("Track validation failed")
 
     expect(renameOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Renamed A",
         url: "https://example.com/a.mp3",
@@ -310,7 +311,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [shareUrlTrack],
+      [libraryPath]: encodeLibrary([shareUrlTrack]),
       [progressPath]: {
         [directUrlTrack.url]: 18,
       },
@@ -336,7 +337,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(deleteOutcome.shouldStopPlayback).toBe(true)
     expect(mergeOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Dropbox Updated",
         url: directUrlTrack.url,
@@ -362,7 +363,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [shareUrlTrack],
+      [libraryPath]: encodeLibrary([shareUrlTrack]),
       [progressPath]: {
         [directUrlTrack.url]: 18,
       },
@@ -388,7 +389,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(mergeOutcome.changed).toBe(true)
     expect(deleteOutcome.shouldStopPlayback).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(extractLibrary(mocks.metadata)).toEqual([])
     expect(mocks.metadata[progressPath]).toBeUndefined()
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
@@ -401,7 +402,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [initial],
+      [libraryPath]: encodeLibrary([initial]),
       [progressPath]: {
         [initial.url]: 7,
       },
@@ -425,7 +426,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(firstOutcome.changed).toBe(true)
     expect(secondOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Rename Two",
         url: initial.url,
@@ -458,7 +459,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(firstOutcome.changed).toBe(true)
     expect(secondOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Second Title",
         url: directUrl,
@@ -470,13 +471,13 @@ describe("dual-GM conflict ordering", () => {
 
   it("clear-then-add allows reusing a previously occupied title", async () => {
     mocks.metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Occupied",
           url: "https://example.com/old.mp3",
           tags: ["old"],
         },
-      ],
+      ]),
       [progressPath]: {
         "https://example.com/old.mp3": 21,
       },
@@ -493,7 +494,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(clearOutcome.changed).toBe(true)
     expect(addOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Occupied",
         url: "https://example.com/new.mp3",
@@ -512,7 +513,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [track],
+      [libraryPath]: encodeLibrary([track]),
       [progressPath]: {
         [track.url]: 88,
       },
@@ -537,7 +538,7 @@ describe("dual-GM conflict ordering", () => {
 
     expect(clearOutcome.changed).toBe(true)
     expect(addOutcome.changed).toBe(true)
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       {
         title: "Track",
         url: "https://example.com/track.mp3",
@@ -557,7 +558,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [track],
+      [libraryPath]: encodeLibrary([track]),
       [progressPath]: {
         [track.url]: 20,
       },
@@ -587,7 +588,7 @@ describe("dual-GM conflict ordering", () => {
       },
     )
 
-    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(extractLibrary(mocks.metadata)).toEqual([])
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toBeUndefined()
   })
@@ -600,7 +601,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [track],
+      [libraryPath]: encodeLibrary([track]),
       [progressPath]: {
         [track.url]: 10,
       },
@@ -630,7 +631,7 @@ describe("dual-GM conflict ordering", () => {
       },
     )
 
-    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(extractLibrary(mocks.metadata)).toEqual([])
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toBeUndefined()
   })
@@ -649,7 +650,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [trackA, trackB],
+      [libraryPath]: encodeLibrary([trackA, trackB]),
       [progressPath]: {
         [trackA.url]: 30,
         [trackB.url]: 0,
@@ -706,7 +707,7 @@ describe("dual-GM conflict ordering", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [trackA, trackB],
+      [libraryPath]: encodeLibrary([trackA, trackB]),
       [progressPath]: {
         [trackA.url]: 12,
         [trackB.url]: 0,
@@ -732,7 +733,7 @@ describe("dual-GM conflict ordering", () => {
       track: trackA,
     })
 
-    expect(mocks.metadata[libraryPath]).toEqual([{ ...trackB, offset: 0 }])
+    expect(extractLibrary(mocks.metadata)).toEqual([{ ...trackB, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toBeUndefined()
   })

@@ -15,7 +15,7 @@ vi.mock("../../infra/metadataHelper", () => ({
   updateMetadataWithCurrent: mocks.updateMetadataWithCurrent,
 }))
 
-import { customTagsPath, libraryPath } from "../../room/metadataSchema"
+import { customTagsPath, encodeLibrary, extractLibrary, libraryPath } from "../../room/metadataSchema"
 import {
   createCustomTag,
   deleteCustomTag,
@@ -45,7 +45,7 @@ describe("custom tag lifecycle", () => {
         "85": "Tavern",
         "87": "Forest",
       },
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
     }
 
     const created = await createCustomTag("  quest  ")
@@ -74,9 +74,9 @@ describe("custom tag lifecycle", () => {
       [customTagsPath]: {
         "85": "Tavern",
       },
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         { title: "Track A", url: "https://example.com/a.mp3", tags: [85, 3], offset: 12 },
-      ],
+      ]),
     }
 
     const renamed = await renameCustomTag(85, "  Guild  ")
@@ -84,7 +84,7 @@ describe("custom tag lifecycle", () => {
     expect(renamed.changed).toBe(true)
     expect(renamed.customTags).toEqual({ "85": "Guild" })
     expect(mocks.metadata[customTagsPath]).toEqual({ "85": "Guild" })
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       { title: "Track A", url: "https://example.com/a.mp3", tags: [85, 3], offset: 12 },
     ])
   })
@@ -95,10 +95,10 @@ describe("custom tag lifecycle", () => {
         "85": "Tavern",
         "86": "Guild",
       },
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         { title: "Track A", url: "https://example.com/a.mp3", tags: [85, 3], offset: 10 },
         { title: "Track B", url: "https://example.com/b.mp3", tags: [86, 3, 85], offset: 0 },
-      ],
+      ]),
     }
 
     const deleted = await deleteCustomTag(85)
@@ -110,15 +110,15 @@ describe("custom tag lifecycle", () => {
       { title: "Track B", url: "https://example.com/b.mp3", tags: [86, 3], offset: 0 },
     ])
     expect(mocks.metadata[customTagsPath]).toEqual({ "86": "Guild" })
-    expect(mocks.metadata[libraryPath]).toEqual(deleted.library)
+    expect(extractLibrary(mocks.metadata)).toEqual(deleted.library)
   })
 
   it("writes only the redesigned room keys for custom-tag lifecycle updates", async () => {
     mocks.metadata = {
       [customTagsPath]: { "85": "Tavern" },
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         { title: "Track A", url: "https://example.com/a.mp3", tags: [85], offset: 18 },
-      ],
+      ]),
     }
 
     await createCustomTag("Quest")
@@ -136,9 +136,9 @@ describe("custom tag lifecycle", () => {
 
     expect(mocks.metadata).toEqual({
       [customTagsPath]: { "86": "Quest" },
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         { title: "Track A", url: "https://example.com/a.mp3", tags: [], offset: 18 },
-      ],
+      ]),
     })
     expect("progress" in mocks.metadata).toBe(false)
     expect("libraryOrder" in mocks.metadata).toBe(false)

@@ -8,7 +8,7 @@ import {
 import {
   writeControlAndProgress,
 } from "../../room/state/playbackWrites"
-import { controlPath, libraryPath, progressPath } from "../../room/metadataSchema"
+import { controlPath, encodeLibrary, extractLibrary, libraryPath, progressPath } from "../../room/metadataSchema"
 
 const mocks = vi.hoisted(() => ({
   metadata: {} as Record<string, unknown>,
@@ -76,11 +76,7 @@ describe("conflict invariants", () => {
       },
     ])
 
-    const library = mocks.metadata[libraryPath] as Array<{
-      title: string
-      url: string
-      tags: string[]
-    }>
+    const library = extractLibrary(mocks.metadata)
 
     expect(library).toHaveLength(1)
     expect(isSameTrack(library[0], { title: "", url: shareUrl, tags: [] })).toBe(true)
@@ -95,7 +91,7 @@ describe("conflict invariants", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [track],
+      [libraryPath]: encodeLibrary([track]),
       [progressPath]: {
         [track.url]: 10,
       },
@@ -145,7 +141,7 @@ describe("conflict invariants", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [removedTrack, survivorTrack],
+      [libraryPath]: encodeLibrary([removedTrack, survivorTrack]),
       [progressPath]: {
         [removedTrack.url]: 12,
         [survivorTrack.url]: 0,
@@ -171,7 +167,7 @@ describe("conflict invariants", () => {
       track: removedTrack,
     })
 
-    expect(mocks.metadata[libraryPath]).toEqual([{ ...survivorTrack, offset: 0 }])
+    expect(extractLibrary(mocks.metadata)).toEqual([{ ...survivorTrack, offset: 0 }])
     expect(mocks.metadata[controlPath]).toBeUndefined()
     expect(mocks.metadata[progressPath]).toBeUndefined()
   })

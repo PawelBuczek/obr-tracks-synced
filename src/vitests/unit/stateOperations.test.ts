@@ -45,6 +45,8 @@ import {
 } from "../../room/state/libraryMutations"
 import {
   controlPath,
+  encodeLibrary,
+  extractLibrary,
   libraryPath,
   progressPath,
 } from "../../room/metadataSchema"
@@ -93,7 +95,7 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [{ ...control.track, offset: 0 }],
+      [libraryPath]: encodeLibrary([{ ...control.track, offset: 0 }]),
       [progressPath]: {},
     }
 
@@ -102,7 +104,7 @@ describe("room state operations", () => {
     expect(mocks.updateMetadataWithCurrent).toHaveBeenCalled()
     expect(mocks.metadata[controlPath]).toEqual(control)
     expect(mocks.metadata[progressPath]).toBeUndefined()
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       { ...control.track, offset: 5 },
     ])
   })
@@ -122,7 +124,7 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
       [progressPath]: {},
     }
 
@@ -147,7 +149,7 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [control.track],
+      [libraryPath]: encodeLibrary([control.track]),
       [controlPath]: {
         ...control,
         id: "msg-current",
@@ -184,7 +186,8 @@ describe("room state operations", () => {
     await writeLibrary(library)
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
-      [libraryPath]: library,
+      [libraryPath]: encodeLibrary(library),
+      [progressPath]: undefined,
     })
   })
 
@@ -200,14 +203,14 @@ describe("room state operations", () => {
     await writeLibraryAndProgress(library)
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
-      [libraryPath]: library,
+      [libraryPath]: encodeLibrary(library),
       [progressPath]: undefined,
     })
 
     await writeLibraryAndProgressAndClearControl(library)
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith({
-      [libraryPath]: library,
+      [libraryPath]: encodeLibrary(library),
       [controlPath]: undefined,
       [progressPath]: undefined,
     })
@@ -221,13 +224,13 @@ describe("room state operations", () => {
 
   it("merges tracks into room library using current metadata snapshot", async () => {
     mocks.metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Old",
           url: baseTrack.url,
           tags: ["one"],
         },
-      ],
+      ]),
       [progressPath]: {
         [baseTrack.url]: 12,
       },
@@ -250,7 +253,7 @@ describe("room state operations", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
+    expect(extractLibrary(mocks.metadata)).toEqual(outcome.library)
   })
 
   it("adds valid tracks and reports tracks with URLs over 200 characters", async () => {
@@ -272,7 +275,7 @@ describe("room state operations", () => {
     expect(outcome.rejections).toEqual([
       { reason: "url-too-long", count: 13 },
     ])
-    expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
+    expect(extractLibrary(mocks.metadata)).toEqual(outcome.library)
   })
 
   it("treats dropbox url variants as one track during merge updates", async () => {
@@ -280,13 +283,13 @@ describe("room state operations", () => {
     const directUrl = "https://dl.dropboxusercontent.com/scl/fi/example/track.mp3?dl=1"
 
     mocks.metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Old Title",
           url: shareUrl,
           tags: ["old"],
         },
-      ],
+      ]),
       [progressPath]: {
         [directUrl]: 9,
       },
@@ -309,7 +312,7 @@ describe("room state operations", () => {
         offset: 0,
       },
     ])
-    expect(mocks.metadata[libraryPath]).toEqual(outcome.library)
+    expect(extractLibrary(mocks.metadata)).toEqual(outcome.library)
   })
 
   it("refreshes currently playing control track title and tags when merging same-url track", async () => {
@@ -320,13 +323,13 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Old Title",
           url: "https://www.dropbox.com/scl/fi/example/track.mp3?dl=0",
           tags: ["old"],
         },
-      ],
+      ]),
       [progressPath]: {
         [playingTrack.url]: 12,
       },
@@ -362,7 +365,7 @@ describe("room state operations", () => {
 
   it("no-ops delete when target track is already absent", async () => {
     mocks.metadata = {
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
       [progressPath]: {},
     }
 
@@ -384,7 +387,7 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [libraryTrack],
+      [libraryPath]: encodeLibrary([libraryTrack]),
       [progressPath]: {
         [playingTrack.url]: 22,
       },
@@ -403,13 +406,13 @@ describe("room state operations", () => {
     expect(outcome.changed).toBe(true)
     expect(outcome.shouldStopPlayback).toBe(true)
     expect(outcome.library).toEqual([])
-    expect(mocks.metadata[libraryPath]).toEqual([])
+    expect(extractLibrary(mocks.metadata)).toEqual([])
     expect(mocks.metadata[controlPath]).toBeUndefined()
   })
 
   it("clear room library no-ops on already empty state", async () => {
     mocks.metadata = {
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
       [progressPath]: {},
     }
 
@@ -432,13 +435,13 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [],
+      [libraryPath]: encodeLibrary([]),
       [progressPath]: {},
     }
 
     await mergeTracksIntoRoomLibrary([first, second])
 
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       { ...first, offset: 0 },
       { ...second, offset: 0 },
     ])
@@ -451,7 +454,7 @@ describe("room state operations", () => {
 
     await mergeTracksIntoRoomLibrary([updatedFirst])
 
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       { ...updatedFirst, tags: [3], offset: 0 },
       { ...second, offset: 0 },
     ])
@@ -475,13 +478,13 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [first, second, third],
+      [libraryPath]: encodeLibrary([first, second, third]),
       [progressPath]: {},
     }
 
     await deleteTrackFromRoomLibrary(second)
 
-    expect(mocks.metadata[libraryPath]).toEqual([
+    expect(extractLibrary(mocks.metadata)).toEqual([
       { ...first, offset: 0 },
       { ...third, offset: 0 },
     ])
@@ -505,7 +508,7 @@ describe("room state operations", () => {
     }
 
     mocks.metadata = {
-      [libraryPath]: [first, second, third],
+      [libraryPath]: encodeLibrary([first, second, third]),
       [progressPath]: {},
     }
 

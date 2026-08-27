@@ -1,4 +1,5 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
+import { compressToUTF16, decompressFromUTF16 } from "lz-string"
 import { Action } from "../domain/playback"
 import {
   CUSTOM_TAG_ID_MAX,
@@ -112,14 +113,36 @@ function parseTrack(value: unknown): Track | undefined {
   return fixed
 }
 
-export function extractLibrary(metadata: Metadata): Track[] {
-  const value = metadata[libraryPath]
+// Library entries share a lot of repeated substrings (hostnames, share-link
+// path segments, query param names), so store the whole array as one
+// LZ-compressed string instead of raw JSON to fit more tracks under the
+// room metadata size cap.
+export function encodeLibrary(library: Track[]): string {
+  return compressToUTF16(JSON.stringify(library))
+}
 
-  if (!Array.isArray(value)) {
+function decodeLibraryEntries(value: unknown): unknown[] {
+  if (typeof value !== "string") {
     return []
   }
 
-  return value
+  try {
+    const decompressed = decompressFromUTF16(value)
+    if (!decompressed) {
+      return []
+    }
+
+    const parsed = JSON.parse(decompressed)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function extractLibrary(metadata: Metadata): Track[] {
+  const value = metadata[libraryPath]
+
+  return decodeLibraryEntries(value)
     .map(track => parseTrack(track))
     .filter((track): track is Track => track !== undefined)
 }

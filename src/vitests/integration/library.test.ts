@@ -59,6 +59,7 @@ import {
 } from "../../room/library"
 
 import { controlPath } from "../../room/mb"
+import { encodeLibrary } from "../../room/metadataSchema"
 import { key } from "../../shared/key"
 
 const libraryPath = key("library")
@@ -70,6 +71,17 @@ function makeTracks(count: number) {
     url: `https://x/${index}.mp3`,
     tags: [],
   }))
+}
+
+// LZ-string compresses repeated characters extremely well, so use
+// non-repeating content to keep this fixture over the size cap post-compression.
+function incompressibleTag(length: number): string {
+  let tag = ""
+  let counter = 0
+  while (tag.length < length) {
+    tag += (counter++).toString(36)
+  }
+  return tag.slice(0, length)
 }
 
 async function withoutMetadataLimit<T>(callback: () => Promise<T>): Promise<T> {
@@ -89,7 +101,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 
   mocks.getMetadata.mockResolvedValue({
-    [libraryPath]: [],
+    [libraryPath]: encodeLibrary([]),
     [progressPath]: {},
   })
 
@@ -119,7 +131,7 @@ beforeEach(() => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [{ ...track, offset: 0 }],
+        [libraryPath]: encodeLibrary([{ ...track, offset: 0 }]),
       }),
     )
   })
@@ -132,7 +144,7 @@ beforeEach(() => {
     }
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [originalTrack],
+      [libraryPath]: encodeLibrary([originalTrack]),
       [progressPath]: {},
     })
 
@@ -148,7 +160,7 @@ beforeEach(() => {
     expect(getLibrary()).toHaveLength(1)
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [{ ...updatedTrack, offset: 0 }],
+        [libraryPath]: encodeLibrary([{ ...updatedTrack, offset: 0 }]),
       }),
     )
   })
@@ -167,7 +179,7 @@ beforeEach(() => {
     }
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [originalTrack],
+      [libraryPath]: encodeLibrary([originalTrack]),
       [progressPath]: {
         [playingTrack.url]: 33,
       },
@@ -189,14 +201,14 @@ beforeEach(() => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [
+        [libraryPath]: encodeLibrary([
           {
             title: "Updated Track",
             url: playingTrack.url,
             tags: ["updated", 3],
             offset: 0,
           },
-        ],
+        ]),
         [controlPath]: expect.objectContaining({
           track: {
             title: "Updated Track",
@@ -216,7 +228,7 @@ beforeEach(() => {
     }
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [existingTrack],
+      [libraryPath]: encodeLibrary([existingTrack]),
       [progressPath]: {},
     })
 
@@ -238,11 +250,11 @@ beforeEach(() => {
     const oversizedTrack = {
       title: "Huge Track",
       url: "https://example.com/huge.mp3",
-      tags: ["x".repeat(7000)],
+      tags: [incompressibleTag(7000)],
     }
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [oversizedTrack],
+      [libraryPath]: encodeLibrary([oversizedTrack]),
       [progressPath]: {},
     })
 
@@ -262,11 +274,11 @@ beforeEach(() => {
     const oversizedTrack = {
       title: "Huge Track",
       url: "https://example.com/huge.mp3",
-      tags: ["x".repeat(7000)],
+      tags: [incompressibleTag(7000)],
     }
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [oversizedTrack],
+      [libraryPath]: encodeLibrary([oversizedTrack]),
       [progressPath]: {},
     })
 
@@ -278,14 +290,14 @@ beforeEach(() => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [
+        [libraryPath]: encodeLibrary([
           {
             title: "Updated Huge Track",
             url: "https://example.com/huge.mp3",
             tags: ["updated"],
             offset: 0,
           },
-        ],
+        ]),
       }),
     )
   })
@@ -294,7 +306,7 @@ beforeEach(() => {
     await withoutMetadataLimit(async () => {
       const tracks = makeTracks(199)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: tracks,
+        [libraryPath]: encodeLibrary(tracks),
         [progressPath]: {},
       })
 
@@ -313,7 +325,7 @@ beforeEach(() => {
     await withoutMetadataLimit(async () => {
       const tracks = makeTracks(200)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: tracks,
+        [libraryPath]: encodeLibrary(tracks),
         [progressPath]: {},
       })
 
@@ -334,7 +346,7 @@ beforeEach(() => {
     await withoutMetadataLimit(async () => {
       const existingTracks = makeTracks(198)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: existingTracks,
+        [libraryPath]: encodeLibrary(existingTracks),
         [progressPath]: {},
       })
 
@@ -357,7 +369,7 @@ beforeEach(() => {
     await withoutMetadataLimit(async () => {
       const tracks = makeTracks(200)
       mocks.getMetadata.mockResolvedValue({
-        [libraryPath]: tracks,
+        [libraryPath]: encodeLibrary(tracks),
         [progressPath]: {},
       })
 
@@ -379,13 +391,13 @@ beforeEach(() => {
 
   it("clears control metadata when clearing the library", async () => {
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Track",
           url: "https://example.com/track.mp3",
           tags: [],
         },
-      ],
+      ]),
       [progressPath]: {
         "https://example.com/track.mp3": 11,
       },
@@ -395,7 +407,7 @@ beforeEach(() => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [],
+        [libraryPath]: encodeLibrary([]),
         [controlPath]: undefined,
       }),
     )
@@ -410,7 +422,7 @@ beforeEach(() => {
     }
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [track],
+      [libraryPath]: encodeLibrary([track]),
       [progressPath]: {
         [track.url]: 42,
       },
@@ -434,7 +446,7 @@ beforeEach(() => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [],
+        [libraryPath]: encodeLibrary([]),
         [controlPath]: undefined,
       }),
     )
@@ -456,10 +468,10 @@ beforeEach(() => {
 
 
     mocks.getMetadata.mockResolvedValue({
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         track,
         playingTrack,
-      ],
+      ]),
       [progressPath]: {},
       [controlPath]: {
         track: playingTrack,
@@ -477,9 +489,9 @@ beforeEach(() => {
 
     expect(mocks.updateMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
-        [libraryPath]: [
+        [libraryPath]: encodeLibrary([
           { ...playingTrack, offset: 0 },
-        ],
+        ]),
       }),
     )
 

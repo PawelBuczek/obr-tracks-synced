@@ -10,7 +10,7 @@ import {
 } from "../../domain/tags"
 import { Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
-import { customTagsPath, extractCustomTags, extractLibrary, libraryPath } from "../metadataSchema"
+import { customTagsPath, encodeLibrary, extractCustomTags, extractLibrary, libraryPath } from "../metadataSchema"
 
 export type CustomTagRejectionReason =
   | "duplicate-name"
@@ -269,7 +269,7 @@ export async function deleteCustomTag(
     }
 
     return {
-      [libraryPath]: nextLibrary,
+      [libraryPath]: encodeLibrary(nextLibrary),
       [customTagsPath]: Object.keys(nextCustomTags).length > 0 ? nextCustomTags : undefined,
     }
   })

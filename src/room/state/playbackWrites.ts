@@ -2,6 +2,7 @@ import { isSameTrack, Track } from "../../domain/track"
 import { updateMetadataWithCurrent } from "../../infra/metadataHelper"
 import {
   controlPath,
+  encodeLibrary,
   extractControlMessage,
   extractLibrary,
   libraryPath,
@@ -53,7 +54,7 @@ export function writeControlAndProgress(
     }
 
     return {
-      [libraryPath]: nextLibrary,
+      [libraryPath]: encodeLibrary(nextLibrary),
       [controlPath]: control,
       [progressPath]: undefined,
     }
@@ -68,7 +69,7 @@ export function clearControlAndWriteProgress(track?: Track) {
       : currentLibrary
 
     return {
-      ...(nextLibrary !== currentLibrary ? { [libraryPath]: nextLibrary } : {}),
+      ...(nextLibrary !== currentLibrary ? { [libraryPath]: encodeLibrary(nextLibrary) } : {}),
       [controlPath]: undefined,
       [progressPath]: undefined,
     }

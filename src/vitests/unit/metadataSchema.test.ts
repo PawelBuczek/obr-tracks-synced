@@ -3,6 +3,7 @@ import { Action } from "../../domain/playback"
 import {
   controlPath,
   customTagsPath,
+  encodeLibrary,
   extractControlMessage,
   extractCustomTags,
   extractLibrary,
@@ -31,7 +32,7 @@ describe("metadata schema", () => {
 
   it("extracts only valid numeric-tag tracks from library metadata", () => {
     const metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "Valid",
           url: "https://example.com/ok.mp3",
@@ -45,7 +46,7 @@ describe("metadata schema", () => {
           offset: -1,
         },
         "bad-entry",
-      ],
+      ] as never),
     }
 
     expect(extractLibrary(metadata)).toEqual([
@@ -60,7 +61,7 @@ describe("metadata schema", () => {
 
   it("keeps the library array order as the canonical ordering", () => {
     const metadata = {
-      [libraryPath]: [
+      [libraryPath]: encodeLibrary([
         {
           title: "First",
           url: "https://example.com/first.mp3",
@@ -71,7 +72,7 @@ describe("metadata schema", () => {
           url: "https://example.com/second.mp3",
           tags: [],
         },
-      ],
+      ] as never),
     }
 
     expect(extractLibrary(metadata).map(track => track.title)).toEqual([
