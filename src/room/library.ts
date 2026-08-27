@@ -108,8 +108,14 @@ export function addTrackToLibrary(track: Track) {
 
   return roomSyncReady.then(async () => {
     const outcome = await mergeLibrary([track])
-    if (outcome?.rejections?.some(r => r.reason === "library-over-limit")) {
+    const rejection = outcome?.rejections?.find(
+      r => r.reason === "library-over-limit" || r.reason === "library-track-limit",
+    )
+    if (rejection?.reason === "library-over-limit") {
       throw new ObrError("Cannot add track: library metadata is over 6 KB limit")
+    }
+    if (rejection?.reason === "library-track-limit") {
+      throw new ObrError("Cannot add track: library is limited to 200 tracks")
     }
   })
 }

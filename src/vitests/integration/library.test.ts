@@ -55,6 +55,7 @@ import {
   deleteTrackFromLibrary,
   addTrackToLibrary,
   getLibrary,
+  mergeLibrary,
 } from "../../room/library"
 
 import { controlPath } from "../../room/mb"
@@ -62,6 +63,26 @@ import { key } from "../../shared/key"
 
 const libraryPath = key("library")
 const progressPath = key("progress")
+
+function makeTracks(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    title: `T${index}`,
+    url: `https://x/${index}.mp3`,
+    tags: [],
+  }))
+}
+
+async function withoutMetadataLimit<T>(callback: () => Promise<T>): Promise<T> {
+  const encode = vi
+    .spyOn(TextEncoder.prototype, "encode")
+    .mockReturnValue(new Uint8Array())
+
+  try {
+    return await callback()
+  } finally {
+    encode.mockRestore()
+  }
+}
 
 describe("library playback cleanup", () => {
 beforeEach(() => {
@@ -267,6 +288,92 @@ beforeEach(() => {
         ],
       }),
     )
+  })
+
+  it("accepts a new track when the library has 199 tracks", async () => {
+    await withoutMetadataLimit(async () => {
+      const tracks = makeTracks(199)
+      mocks.getMetadata.mockResolvedValue({
+        [libraryPath]: tracks,
+        [progressPath]: {},
+      })
+
+      await addTrackToLibrary({
+        title: "T199",
+        url: "https://x/199.mp3",
+        tags: [],
+      })
+
+      expect(getLibrary()).toHaveLength(200)
+      expect(mocks.updateMetadata).toHaveBeenCalled()
+    })
+  })
+
+  it("rejects a new track when the library already has 200 tracks", async () => {
+    await withoutMetadataLimit(async () => {
+      const tracks = makeTracks(200)
+      mocks.getMetadata.mockResolvedValue({
+        [libraryPath]: tracks,
+        [progressPath]: {},
+      })
+
+      await expect(
+        addTrackToLibrary({
+          title: "T200",
+          url: "https://x/200.mp3",
+          tags: [],
+        }),
+      ).rejects.toThrow("library is limited to 200 tracks")
+
+      expect(getLibrary()).toHaveLength(200)
+      expect(mocks.updateMetadata).not.toHaveBeenCalled()
+    })
+  })
+
+  it("rejects only tracks beyond 200 during a bulk merge", async () => {
+    await withoutMetadataLimit(async () => {
+      const existingTracks = makeTracks(198)
+      mocks.getMetadata.mockResolvedValue({
+        [libraryPath]: existingTracks,
+        [progressPath]: {},
+      })
+
+      const outcome = await mergeLibrary(
+        makeTracks(5).map((track, index) => ({
+          ...track,
+          title: `N${index}`,
+          url: `https://x/n${index}.mp3`,
+        })),
+      )
+
+      expect(outcome.rejections).toEqual([
+        { reason: "library-track-limit", count: 3 },
+      ])
+      expect(getLibrary()).toHaveLength(200)
+    })
+  })
+
+  it("allows updating an existing track when the library has 200 tracks", async () => {
+    await withoutMetadataLimit(async () => {
+      const tracks = makeTracks(200)
+      mocks.getMetadata.mockResolvedValue({
+        [libraryPath]: tracks,
+        [progressPath]: {},
+      })
+
+      await addTrackToLibrary({
+        title: "Updated",
+        url: "https://x/0.mp3",
+        tags: [],
+      })
+
+      expect(getLibrary()).toHaveLength(200)
+      expect(getLibrary()[0]).toMatchObject({
+        title: "Updated",
+        url: "https://x/0.mp3",
+      })
+      expect(mocks.updateMetadata).toHaveBeenCalled()
+    })
   })
 
 

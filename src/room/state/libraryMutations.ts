@@ -18,7 +18,10 @@ export interface LibraryMutationOutcome {
   rejections?: LibraryMergeRejection[]
 }
 
-export type LibraryMergeRejectionReason = "url-too-long" | "library-over-limit"
+export type LibraryMergeRejectionReason =
+  | "url-too-long"
+  | "library-over-limit"
+  | "library-track-limit"
 
 export interface LibraryMergeRejection {
   reason: LibraryMergeRejectionReason
@@ -28,6 +31,7 @@ export interface LibraryMergeRejection {
 export type LibraryMoveDirection = "up" | "down"
 
 const LIBRARY_METADATA_SIZE_CAP_BYTES = 6 * 1024
+const MAX_LIBRARY_TRACKS = 200
 const MAX_TRACK_URL_LENGTH = 200
 
 function getLibraryMetadataSizeBytes(library: Track[]): number {
@@ -55,10 +59,16 @@ export async function mergeTracksIntoRoomLibrary(
 
     let nextLibrary = currentLibrary
     let overLimitCount = 0
+    let trackLimitCount = 0
 
     for (const [index, track] of acceptedTracks.entries()) {
       const candidate = buildMergedLibrary(nextLibrary, [track])
       const isAddingNewTrack = candidate.library.length > nextLibrary.length
+
+      if (isAddingNewTrack && candidate.library.length > MAX_LIBRARY_TRACKS) {
+        trackLimitCount++
+        continue
+      }
 
       if (
         isAddingNewTrack &&
@@ -85,6 +95,9 @@ export async function mergeTracksIntoRoomLibrary(
     }
     if (overLimitCount > 0) {
       rejections.push({ reason: "library-over-limit", count: overLimitCount })
+    }
+    if (trackLimitCount > 0) {
+      rejections.push({ reason: "library-track-limit", count: trackLimitCount })
     }
 
     outcome = {
