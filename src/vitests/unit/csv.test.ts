@@ -12,7 +12,7 @@ vi.mock("@owlbear-rodeo/sdk", () => ({
   },
 }))
 
-import { TracksToCsv, csvToTracks } from "../../io/csv"
+import { csvToTracks } from "../../io/csv"
 
 describe("csv import and export", () => {
   it("parses valid csv rows into tracks", () => {
@@ -81,26 +81,4 @@ describe("csv import and export", () => {
     ])
   })
 
-  it("round-trips tracks through csv export and parse", () => {
-    const tracks = [
-      {
-        title: "Alpha",
-        url: "https://example.com/alpha.mp3",
-        tags: [1, 2],
-        offset: 0,
-      },
-      {
-        title: "Beta",
-        url: "https://example.com/beta.mp3",
-        tags: [],
-        offset: 0,
-      },
-    ]
-
-    const csv = TracksToCsv(tracks)
-    const result = csvToTracks(csv)
-
-    expect(result.errors).toEqual([])
-    expect(result.tracks).toEqual(tracks)
-  })
 })

@@ -1,11 +1,59 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen } from "@testing-library/react"
+import React from "react"
 import { TrackProgress } from "../../ui/player/TrackProgress"
-import { Action } from "../../room/mb"
+import { Action, type Message } from "../../room/mb"
 
 const mocks = vi.hoisted(() => ({
   seekToOffset: vi.fn(),
   useRole: vi.fn(),
+  useMessage: vi.fn<() => Message | undefined>(() => undefined),
+}))
+
+vi.mock("@mui/material", () => ({
+  Skeleton: () => <div data-testid="skeleton" />,
+  Stack: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Typography: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  useTheme: () => ({ palette: { grey: { 400: "#999" } } }),
+  Slider: (props: {
+    value: number
+    disabled?: boolean
+    onChange?: (event: Event, value: number | number[]) => void
+    onChangeCommitted?: (
+      event: Event | React.SyntheticEvent,
+      value: number | number[],
+    ) => void
+    onMouseDown?: () => void
+  }) => (
+    <div data-testid="slider-root" onMouseDown={props.onMouseDown}>
+      <span data-testid="slider-value">{String(props.value)}</span>
+      <button
+        data-testid="change-30"
+        disabled={props.disabled}
+        onClick={event => props.onChange?.(event as unknown as Event, 30)}
+      >
+        change-30
+      </button>
+      <button
+        data-testid="commit-30"
+        disabled={props.disabled}
+        onClick={event =>
+          props.onChangeCommitted?.(event as unknown as Event, 30)
+        }
+      >
+        commit-30
+      </button>
+      <button
+        data-testid="commit-60"
+        disabled={props.disabled}
+        onClick={event =>
+          props.onChangeCommitted?.(event as unknown as Event, 60)
+        }
+      >
+        commit-60
+      </button>
+    </div>
+  ),
 }))
 
 vi.mock("../../room/mb", async () => {
@@ -17,7 +65,7 @@ vi.mock("../../room/mb", async () => {
 })
 
 vi.mock("../../ui/providers/MessageProvider", () => ({
-  useMessage: vi.fn(() => undefined),
+  useMessage: mocks.useMessage,
 }))
 
 vi.mock("../../ui/providers/RoleProvider", () => ({
@@ -42,9 +90,7 @@ describe("TrackProgress UI", () => {
   it("renders skeleton when no message is playing", () => {
     render(<TrackProgress />)
 
-    // MUI Skeleton renders with specific classes
-    const skeleton = document.querySelector(".MuiSkeleton-root")
-    expect(skeleton).toBeDefined()
+    expect(screen.getByTestId("skeleton")).toBeDefined()
   })
 
   it("displays current progress and duration when track is playing", () => {
@@ -91,84 +137,6 @@ describe("TrackProgress UI", () => {
     expect(timeTexts.length).toBeGreaterThan(0)
   })
 
-  it("renders a slider that can be interacted with", () => {
-    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
-    mockUseMessage.mockReturnValue({
-      id: "test-789",
-      time: new Date("2026-01-01T00:00:00Z"),
-      action: Action.Play,
-      offset: 0,
-      duration: 300,
-      track: {
-        title: "Interactive Track",
-        url: "https://example.com/interactive.mp3",
-        tags: [],
-      },
-    })
-
-    render(<TrackProgress />)
-
-    // Look for the slider component (MUI Slider renders an input[type="range"])
-    const slider = document.querySelector('input[type="range"]')
-    expect(slider).toBeDefined()
-    expect(slider?.getAttribute("min")).toBe("0")
-    expect(slider?.getAttribute("max")).toBe("100")
-  })
-
-  it("calls seekToOffset when slider is released", () => {
-    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
-    mockUseMessage.mockReturnValue({
-      id: "test-seek",
-      time: new Date("2026-01-01T00:00:00Z"),
-      action: Action.Play,
-      offset: 0,
-      duration: 200,
-      track: {
-        title: "Seekable Track",
-        url: "https://example.com/seekable.mp3",
-        tags: [],
-      },
-    })
-
-    render(<TrackProgress />)
-
-    const slider = document.querySelector('input[type="range"]') as HTMLInputElement
-    expect(slider).toBeDefined()
-
-    // Verify slider attributes are set correctly for seeking
-    if (slider) {
-      expect(slider.min).toBe("0")
-      expect(slider.max).toBe("100")
-      expect(slider.step).toBe("0.1")
-    }
-  })
-
-  it("updates displayed time while dragging slider", () => {
-    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
-    mockUseMessage.mockReturnValue({
-      id: "test-drag",
-      time: new Date("2026-01-01T00:00:00Z"),
-      action: Action.Play,
-      offset: 0,
-      duration: 240,
-      track: {
-        title: "Draggable Track",
-        url: "https://example.com/draggable.mp3",
-        tags: [],
-      },
-    })
-
-    render(<TrackProgress />)
-
-    // Verify time displays exist (current and duration)
-    const timeDisplays = screen.getAllByText(/\d{2}:\d{2}:\d{2}/)
-    expect(timeDisplays.length).toBe(2)
-
-    // Verify slider exists
-    const slider = document.querySelector('input[type="range"]')
-    expect(slider).toBeDefined()
-  })
-
   it("handles edge case of zero duration", () => {
     const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
     mockUseMessage.mockReturnValue({
@@ -186,9 +154,7 @@ describe("TrackProgress UI", () => {
 
     render(<TrackProgress />)
 
-    // Should render without errors
-    const slider = document.querySelector('input[type="range"]')
-    expect(slider).toBeDefined()
+    expect(screen.getByTestId("slider-root")).toBeDefined()
   })
 
   it("disables seeking for players", () => {
@@ -211,13 +177,73 @@ describe("TrackProgress UI", () => {
 
     render(<TrackProgress />)
 
-    const slider = document.querySelector('input[type="range"]') as HTMLInputElement
-    expect(slider).toBeDefined()
-    expect(slider.disabled).toBe(true)
-
-    fireEvent.change(slider, { target: { value: "50" } })
-    fireEvent.mouseUp(slider)
+    expect(screen.getByTestId("commit-30")).toHaveProperty("disabled", true)
+    fireEvent.click(screen.getByTestId("commit-30"))
 
     expect(mocks.seekToOffset).not.toHaveBeenCalled()
+  })
+
+  it("shows the new track progress immediately after a track switch", () => {
+    vi.useFakeTimers()
+    const baseTime = new Date("2026-01-01T00:00:00Z")
+    vi.setSystemTime(baseTime)
+    let message: Message = {
+      id: "msg-b-paused", time: baseTime, action: Action.Pause, offset: 30 * 60, duration: 40 * 60,
+      track: { title: "Track B", url: "https://example.com/b.mp3", tags: [] },
+    }
+    mocks.useMessage.mockImplementation(() => message)
+
+    const { rerender } = render(<TrackProgress />)
+    message = {
+      id: "msg-a-play", time: baseTime, action: Action.Play, offset: 5 * 60, duration: 20 * 60,
+      track: { title: "Track A", url: "https://example.com/a.mp3", tags: [] },
+    }
+    rerender(<TrackProgress />)
+
+    expect(screen.getByText("00:05:00")).toBeDefined()
+    expect(screen.getByText("00:20:00")).toBeDefined()
+    expect(screen.queryByText("00:30:00")).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it("keeps the synced position when a second grab starts without movement", () => {
+    vi.useFakeTimers()
+    let message: Message = {
+      id: "msg-1", time: new Date("2026-01-01T00:00:00Z"), action: Action.Pause, offset: 10, duration: 100,
+      track: { title: "Freeze Regression", url: "https://example.com/freeze.mp3", tags: [] },
+    }
+    mocks.useMessage.mockImplementation(() => message)
+
+    const { rerender } = render(<TrackProgress />)
+    fireEvent.click(screen.getByTestId("change-30"))
+    fireEvent.click(screen.getByTestId("commit-30"))
+    message = { ...message, id: "msg-2", offset: 40 }
+    rerender(<TrackProgress />)
+    act(() => { vi.advanceTimersByTime(2500) })
+    fireEvent.mouseDown(screen.getByTestId("slider-root"))
+
+    expect(screen.getByText("00:00:40")).toBeDefined()
+    expect(screen.queryByText("00:00:30")).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it("does not leak optimistic seek offsets across track switches", () => {
+    let message: Message = {
+      id: "msg-a", time: new Date("2026-01-01T00:00:00Z"), action: Action.Pause, offset: 10, duration: 100,
+      track: { title: "Track A", url: "https://example.com/a.mp3", tags: [] },
+    }
+    mocks.useMessage.mockImplementation(() => message)
+
+    const { rerender } = render(<TrackProgress />)
+    fireEvent.click(screen.getByTestId("commit-30"))
+    message = { ...message, id: "msg-b", offset: 50, track: { title: "Track B", url: "https://example.com/b.mp3", tags: [] } }
+    rerender(<TrackProgress />)
+    fireEvent.click(screen.getByTestId("commit-60"))
+    message = { ...message, id: "msg-c", offset: 20, track: { title: "Track C", url: "https://example.com/c.mp3", tags: [] } }
+    rerender(<TrackProgress />)
+
+    expect(screen.getByText("00:00:20")).toBeDefined()
+    expect(screen.queryByText("00:01:00")).toBeNull()
+    expect(screen.queryByText("00:00:30")).toBeNull()
   })
 })

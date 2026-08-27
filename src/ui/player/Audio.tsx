@@ -15,8 +15,10 @@ export function Audio(props: AudioProps) {
   const currentMessage = useMessage()
 
   const ref = useRef<HTMLAudioElement>(null)
+  const desiredMuteRef = useRef(mute)
 
   useEffect(() => {
+    desiredMuteRef.current = mute
     if (ref.current) {
       ref.current.muted = mute
     }
@@ -40,7 +42,20 @@ export function Audio(props: AudioProps) {
     }
 
     void playPromise.catch(() => {
-      // Browser blocked autoplay; playback will start after user interaction.
+      if (audio.muted) {
+        return
+      }
+
+      audio.muted = true
+      const retryPromise = audio.play()
+      if (!retryPromise || typeof retryPromise.then !== "function") {
+        audio.muted = desiredMuteRef.current
+        return
+      }
+
+      void retryPromise.finally(() => {
+        audio.muted = desiredMuteRef.current
+      })
     })
   }
 

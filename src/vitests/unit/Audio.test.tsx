@@ -95,6 +95,37 @@ describe("Audio looping", () => {
     playMock.mockRestore()
   })
 
+  it("retries blocked unmuted autoplay and restores the requested mute state", async () => {
+    const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
+    mockUseMessage.mockReturnValue({
+      id: "blocked-retry",
+      time: new Date(),
+      action: Action.Play,
+      offset: 10,
+      duration: 120,
+      track: {
+        title: "Retry Track",
+        url: "https://example.com/retry.mp3",
+        tags: [],
+      },
+    })
+
+    const playMock = vi
+      .spyOn(HTMLMediaElement.prototype, "play")
+      .mockRejectedValueOnce(new Error("autoplay blocked"))
+      .mockResolvedValueOnce(undefined)
+
+    render(<Audio ready={true} volume={0.5} mute={false} />)
+    const audio = document.getElementById("tracks-audio-player") as HTMLAudioElement
+
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(2)
+      expect(audio.muted).toBe(false)
+    })
+
+    playMock.mockRestore()
+  })
+
   it("re-attempts playback when unmuting after a muted start", async () => {
     const mockUseMessage = useMessage as ReturnType<typeof vi.fn>
     mockUseMessage.mockReturnValue({

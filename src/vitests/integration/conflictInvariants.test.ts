@@ -9,6 +9,7 @@ import {
   writeControlAndProgress,
 } from "../../room/state/playbackWrites"
 import { controlPath, encodeLibrary, extractLibrary, libraryPath, progressPath } from "../../room/metadataSchema"
+import { resetMetadataMocks } from "../helpers/metadataMocks"
 
 const mocks = vi.hoisted(() => ({
   metadata: {} as Record<string, unknown>,
@@ -32,28 +33,7 @@ vi.mock("@owlbear-rodeo/sdk", () => ({
 
 describe("conflict invariants", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mocks.metadata = {}
-
-    mocks.updateMetadata.mockImplementation((update: Record<string, unknown>) => {
-      mocks.metadata = {
-        ...mocks.metadata,
-        ...update,
-      }
-    })
-
-    mocks.updateMetadataWithCurrent.mockImplementation(async (transform) => {
-      const update = await transform(mocks.metadata)
-
-      if (!update) {
-        return
-      }
-
-      mocks.metadata = {
-        ...mocks.metadata,
-        ...update,
-      }
-    })
+    resetMetadataMocks(mocks)
   })
 
   it("keeps one logical track for dropbox url variants", async () => {
