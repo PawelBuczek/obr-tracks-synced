@@ -1,7 +1,6 @@
 import { resolveTagId } from "../domain/tags"
 import { canonicalizeTrackUrl, Track } from "../domain/track"
 import { now } from "../infra/time"
-import { ObrError } from "./errors"
 
 // get number of seconds between two times
 export function getSeconds(time: Date) {
@@ -29,11 +28,7 @@ export function getPlaybackTime(
 
 // convert urls into direct downloadable urls, currently only supports dropbox
 export function convertToDirectDownloadable(url: string): string {
-  try {
-    return canonicalizeTrackUrl(url)
-  } catch {
-    throw new ObrError(`Failed to convert, invalid url: ${url}`)
-  }
+  return canonicalizeTrackUrl(url)
 }
 
 export interface CheckResult<F, V> {

@@ -42,7 +42,6 @@ export function toString(track: Track): string {
 }
 
 export function emptyTrack(): Track {
-  String()
   return {
     title: "",
     url: "",
