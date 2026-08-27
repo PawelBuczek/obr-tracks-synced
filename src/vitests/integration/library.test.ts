@@ -73,7 +73,7 @@ function makeTracks(count: number) {
   }))
 }
 
-// LZ-string compresses repeated characters extremely well, so use
+// Deflate compresses repeated characters extremely well, so use
 // non-repeating content to keep this fixture over the size cap post-compression.
 function incompressibleTag(length: number): string {
   let tag = ""
@@ -84,10 +84,20 @@ function incompressibleTag(length: number): string {
   return tag.slice(0, length)
 }
 
+// Bypasses only the metadata size-cap check (which encodes the wrapped
+// `{ [libraryPath]: encoded }` JSON) so tests can focus on the 200-track cap.
+// Must not short-circuit other TextEncoder callers (e.g. fflate's internal
+// UTF-8 encoding used by encodeLibrary/decodeLibraryEntries).
 async function withoutMetadataLimit<T>(callback: () => Promise<T>): Promise<T> {
+  const originalEncode = TextEncoder.prototype.encode
   const encode = vi
     .spyOn(TextEncoder.prototype, "encode")
-    .mockReturnValue(new Uint8Array())
+    .mockImplementation(function (this: TextEncoder, input?: string) {
+      if (typeof input === "string" && input.includes(libraryPath)) {
+        return new Uint8Array()
+      }
+      return originalEncode.call(this, input)
+    })
 
   try {
     return await callback()

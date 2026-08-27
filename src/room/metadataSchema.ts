@@ -1,5 +1,5 @@
 import { Metadata } from "@owlbear-rodeo/sdk"
-import { compressToUTF16, decompressFromUTF16 } from "lz-string"
+import { deflateSync, inflateSync, strFromU8, strToU8 } from "fflate"
 import { Action } from "../domain/playback"
 import {
   CUSTOM_TAG_ID_MAX,
@@ -113,12 +113,28 @@ function parseTrack(value: unknown): Track | undefined {
   return fixed
 }
 
+// btoa/String.fromCharCode only accept a bounded number of arguments, so
+// convert bytes to a binary string in chunks to avoid call-stack limits.
+function bytesToBase64(bytes: Uint8Array): string {
+  const CHUNK_SIZE = 0x8000
+  let binary = ""
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE))
+  }
+  return btoa(binary)
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  return Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+}
+
 // Library entries share a lot of repeated substrings (hostnames, share-link
 // path segments, query param names), so store the whole array as one
-// LZ-compressed string instead of raw JSON to fit more tracks under the
-// room metadata size cap.
+// deflate-compressed, base64-encoded string instead of raw JSON to fit more
+// tracks under the room metadata size cap.
 export function encodeLibrary(library: Track[]): string {
-  return compressToUTF16(JSON.stringify(library))
+  const compressed = deflateSync(strToU8(JSON.stringify(library)), { level: 9 })
+  return bytesToBase64(compressed)
 }
 
 function decodeLibraryEntries(value: unknown): unknown[] {
@@ -127,7 +143,8 @@ function decodeLibraryEntries(value: unknown): unknown[] {
   }
 
   try {
-    const decompressed = decompressFromUTF16(value)
+    const compressed = base64ToBytes(value)
+    const decompressed = strFromU8(inflateSync(compressed))
     if (!decompressed) {
       return []
     }
