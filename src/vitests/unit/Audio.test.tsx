@@ -7,6 +7,16 @@ vi.mock("../../ui/providers/MessageProvider", () => ({
   useMessage: vi.fn(),
 }))
 
+// Audio renders TrackProgress, which subscribes to seek-preview broadcasts on mount.
+vi.mock("../../room/mb", async () => {
+  const actual = await vi.importActual("../../room/mb")
+  return {
+    ...actual,
+    broadcastSeekPreview: vi.fn(),
+    onSeekPreview: vi.fn(() => vi.fn()),
+  }
+})
+
 import { useMessage } from "../../ui/providers/MessageProvider"
 
 describe("Audio looping", () => {

@@ -6,8 +6,8 @@ import {
   useTheme,
 } from "@mui/material"
 import { SyntheticEvent, useEffect, useState } from "react"
-import { Track, isSameTrack } from "../../domain/track"
-import { Action, seekToOffset } from "../../room/mb"
+import { canonicalizeTrackUrl, Track, isSameTrack } from "../../domain/track"
+import { Action, broadcastSeekPreview, onSeekPreview, seekToOffset } from "../../room/mb"
 import { getPlaybackTime, getSeconds } from "../../shared/utils"
 import { useMessage } from "../providers/MessageProvider"
 import { Role, useRole } from "../providers/RoleProvider"
@@ -31,6 +31,7 @@ function TimeTypography(props: { seconds: number }) {
 
 export function TrackProgress() {
   const optimisticSeekWindowMs = 2000
+  const remotePreviewWindowMs = 2000
   const currentMessage = useMessage()
   const role = useRole()
   const canSeek = role === Role.GM
@@ -38,6 +39,10 @@ export function TrackProgress() {
   const [dragValue, setDragValue] = useState<number | undefined>(undefined)
   const [optimisticSeek, setOptimisticSeek] = useState<
     { seconds: number; expiresAt: number; track: Track } | undefined
+  >(undefined)
+  // Live scrub position broadcast by whichever client (GM) is currently dragging the slider.
+  const [remotePreview, setRemotePreview] = useState<
+    { seconds: number; trackUrl: string; expiresAt: number } | undefined
   >(undefined)
 
   useEffect(() => {
@@ -87,6 +92,39 @@ export function TrackProgress() {
   }, [optimisticSeek])
 
   useEffect(() => {
+    return onSeekPreview(message => {
+      setRemotePreview({
+        seconds: message.offsetSeconds,
+        trackUrl: message.trackUrl,
+        expiresAt: Date.now() + remotePreviewWindowMs,
+      })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!remotePreview) {
+      return
+    }
+
+    const msUntilExpire = Math.max(0, remotePreview.expiresAt - Date.now())
+    const timeoutId = setTimeout(() => {
+      setRemotePreview(undefined)
+    }, msUntilExpire)
+
+    return () => clearTimeout(timeoutId)
+  }, [remotePreview])
+
+  useEffect(() => {
+    if (!currentMessage || !remotePreview) {
+      return
+    }
+
+    if (canonicalizeTrackUrl(currentMessage.track.url) !== remotePreview.trackUrl) {
+      setRemotePreview(undefined)
+    }
+  }, [currentMessage, remotePreview])
+
+  useEffect(() => {
     if (!currentMessage || !optimisticSeek) {
       return
     }
@@ -119,6 +157,7 @@ export function TrackProgress() {
       // Convert percentage (0-100) to seconds
       const seconds = (value / 100) * currentMessage.duration
       setDragValue(seconds)
+      broadcastSeekPreview(seconds)
     }
   }
 
@@ -155,7 +194,8 @@ export function TrackProgress() {
     return <Skeleton variant="rounded" animation="wave" height={5} />
   }
 
-  const displayedProgress = dragValue ?? optimisticSeek?.seconds ?? progress
+  const displayedProgress =
+    dragValue ?? optimisticSeek?.seconds ?? remotePreview?.seconds ?? progress
   const sliderValue =
     currentMessage.duration > 0
       ? (displayedProgress / currentMessage.duration) * 100

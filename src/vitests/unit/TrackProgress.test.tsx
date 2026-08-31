@@ -2,10 +2,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest"
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import React from "react"
 import { TrackProgress } from "../../ui/player/TrackProgress"
-import { Action, type Message } from "../../room/mb"
+import { canonicalizeTrackUrl } from "../../domain/track"
+import { Action, type Message, type SeekPreviewMessage } from "../../room/mb"
 
 const mocks = vi.hoisted(() => ({
   seekToOffset: vi.fn(),
+  broadcastSeekPreview: vi.fn(),
+  onSeekPreview: vi.fn<(callback: (message: SeekPreviewMessage) => void) => () => void>(),
   useRole: vi.fn(),
   useMessage: vi.fn<() => Message | undefined>(() => undefined),
 }))
@@ -61,6 +64,8 @@ vi.mock("../../room/mb", async () => {
   return {
     ...actual,
     seekToOffset: mocks.seekToOffset,
+    broadcastSeekPreview: mocks.broadcastSeekPreview,
+    onSeekPreview: mocks.onSeekPreview,
   }
 })
 
@@ -85,7 +90,13 @@ describe("TrackProgress UI", () => {
     const mockUseRole = useRole as ReturnType<typeof vi.fn>
     mockUseRole.mockReturnValue(Role.GM)
     mocks.seekToOffset.mockResolvedValue(undefined)
+    mocks.onSeekPreview.mockImplementation(() => vi.fn())
   })
+
+  function latestSeekPreviewCallback() {
+    const calls = mocks.onSeekPreview.mock.calls
+    return calls[calls.length - 1][0]
+  }
 
   it("renders skeleton when no message is playing", () => {
     render(<TrackProgress />)
@@ -245,5 +256,114 @@ describe("TrackProgress UI", () => {
     expect(screen.getByText("00:00:20")).toBeDefined()
     expect(screen.queryByText("00:01:00")).toBeNull()
     expect(screen.queryByText("00:00:30")).toBeNull()
+  })
+
+  it("broadcasts a seek preview while the GM drags the slider", () => {
+    mocks.useMessage.mockReturnValue({
+      id: "msg-drag",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Pause,
+      offset: 0,
+      duration: 200,
+      track: { title: "Track A", url: "https://example.com/a.mp3", tags: [] },
+    })
+
+    render(<TrackProgress />)
+    fireEvent.click(screen.getByTestId("change-30"))
+
+    expect(mocks.broadcastSeekPreview).toHaveBeenCalledWith(60)
+  })
+
+  it("does not broadcast a seek preview for players", () => {
+    const mockUseRole = useRole as ReturnType<typeof vi.fn>
+    mockUseRole.mockReturnValue(Role.Player)
+    mocks.useMessage.mockReturnValue({
+      id: "msg-drag-player",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Pause,
+      offset: 0,
+      duration: 200,
+      track: { title: "Track A", url: "https://example.com/a.mp3", tags: [] },
+    })
+
+    render(<TrackProgress />)
+    fireEvent.click(screen.getByTestId("change-30"))
+
+    expect(mocks.broadcastSeekPreview).not.toHaveBeenCalled()
+  })
+
+  it("shows a live preview position broadcast from another client", () => {
+    const track = { title: "Track A", url: "https://example.com/a.mp3", tags: [] }
+    mocks.useMessage.mockReturnValue({
+      id: "msg-preview",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Pause,
+      offset: 0,
+      duration: 200,
+      track,
+    })
+
+    render(<TrackProgress />)
+    act(() => {
+      latestSeekPreviewCallback()({
+        trackUrl: canonicalizeTrackUrl(track.url),
+        offsetSeconds: 42,
+      })
+    })
+
+    expect(screen.getByText("00:00:42")).toBeDefined()
+  })
+
+  it("ignores a preview broadcast for a different track", () => {
+    const track = { title: "Track A", url: "https://example.com/a.mp3", tags: [] }
+    mocks.useMessage.mockReturnValue({
+      id: "msg-preview-other",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Pause,
+      offset: 10,
+      duration: 200,
+      track,
+    })
+
+    render(<TrackProgress />)
+    act(() => {
+      latestSeekPreviewCallback()({
+        trackUrl: canonicalizeTrackUrl("https://example.com/other.mp3"),
+        offsetSeconds: 42,
+      })
+    })
+
+    expect(screen.getByText("00:00:10")).toBeDefined()
+    expect(screen.queryByText("00:00:42")).toBeNull()
+  })
+
+  it("clears the remote preview after it expires", () => {
+    vi.useFakeTimers()
+    const track = { title: "Track A", url: "https://example.com/a.mp3", tags: [] }
+    mocks.useMessage.mockReturnValue({
+      id: "msg-preview-expire",
+      time: new Date("2026-01-01T00:00:00Z"),
+      action: Action.Pause,
+      offset: 10,
+      duration: 200,
+      track,
+    })
+
+    render(<TrackProgress />)
+    act(() => {
+      latestSeekPreviewCallback()({
+        trackUrl: canonicalizeTrackUrl(track.url),
+        offsetSeconds: 42,
+      })
+    })
+    expect(screen.getByText("00:00:42")).toBeDefined()
+
+    act(() => {
+      vi.advanceTimersByTime(2100)
+    })
+
+    expect(screen.getByText("00:00:10")).toBeDefined()
+    expect(screen.queryByText("00:00:42")).toBeNull()
+    vi.useRealTimers()
   })
 })

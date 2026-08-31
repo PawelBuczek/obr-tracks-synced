@@ -4,6 +4,7 @@ import { Action, getPlaybackOffset } from "../domain/playback"
 import { canonicalizeTrackUrl, Track } from "../domain/track"
 import { now } from "../infra/time"
 import { ObrError } from "../shared/errors"
+import { key } from "../shared/key"
 import { checkTrack, convertToDirectDownloadable } from "../shared/utils"
 import {
   controlPath,
@@ -21,6 +22,49 @@ export { controlPath }
 export { Action }
 
 export type Message = RoomControlMessage
+
+// Ephemeral (non-persisted) live scrub position, sent while the GM drags the seek slider.
+const seekPreviewChannel = key("seekPreviewBroadcast")
+
+export interface SeekPreviewMessage {
+  trackUrl: string
+  offsetSeconds: number
+}
+
+function isSeekPreviewMessage(value: unknown): value is SeekPreviewMessage {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as SeekPreviewMessage).trackUrl === "string" &&
+    Number.isFinite((value as SeekPreviewMessage).offsetSeconds)
+  )
+}
+
+// UI-only hint, not authoritative: the real seek is still gated by ensureGmCanSeek in seekToOffset.
+export function broadcastSeekPreview(offsetSeconds: number) {
+  if (!currentMessage) {
+    return
+  }
+
+  const message: SeekPreviewMessage = {
+    trackUrl: canonicalizeTrackUrl(currentMessage.track.url),
+    offsetSeconds,
+  }
+
+  void OBR.broadcast.sendMessage(seekPreviewChannel, message).catch(error => {
+    console.warn("Failed to broadcast seek preview:", error)
+  })
+}
+
+export function onSeekPreview(
+  callback: (message: SeekPreviewMessage) => void,
+): () => void {
+  return OBR.broadcast.onMessage(seekPreviewChannel, event => {
+    if (isSeekPreviewMessage(event.data)) {
+      callback(event.data)
+    }
+  })
+}
 
 function sameTags(left: Array<number | string>, right: Array<number | string>): boolean {
   if (left.length !== right.length) {
