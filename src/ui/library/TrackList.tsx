@@ -89,12 +89,10 @@ function TrackCard(props: TrackCardProps) {
   const handleTrackClick = () => {
     switch (getTrackListClickAction(track, currentMessage)) {
       case "resume":
-        optimisticResume()
-        resume()
+        optimisticResume(resume())
         return
       case "pause":
-        optimisticPause()
-        pause()
+        optimisticPause(pause())
         return
       default:
         play(track)

@@ -3,6 +3,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react"
 import { Message, Action, getCachedTrackOffset, onMessage } from "../../room/mb"
@@ -17,17 +18,19 @@ type OptimisticOverride =
       kind: "message"
       message: Message
       expiresAt: number
+      epoch: number
     }
   | {
       kind: "none"
       expiresAt: number
+      epoch: number
     }
 
 interface OptimisticMessageActions {
-  optimisticPlay: (track: Track) => void
-  optimisticPause: () => void
-  optimisticResume: () => void
-  optimisticStop: () => void
+  optimisticPlay: (track: Track, pending?: Promise<unknown>) => void
+  optimisticPause: (pending?: Promise<unknown>) => void
+  optimisticResume: (pending?: Promise<unknown>) => void
+  optimisticStop: (pending?: Promise<unknown>) => void
 }
 
 const noop = () => undefined
@@ -84,6 +87,7 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
   const [override, setOverride] = useState<OptimisticOverride | undefined>(
     undefined,
   )
+  const epochRef = useRef(0)
 
   useEffect(() => {
     return onMessage(setMessage)
@@ -107,8 +111,27 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
     return () => clearTimeout(timeoutId)
   }, [override, message])
 
+  // Grace period given to the metadata subscription to catch up once the write settles.
   const optimisticWindowMs = 2000
+  // Safety cap in case the write never settles (e.g. network failure), so the UI doesn't get stuck.
+  const optimisticSafetyWindowMs = 8000
   const now = () => Date.now()
+
+  // Keeps the optimistic override alive until the underlying write actually completes,
+  // instead of reverting to a stale canonical message after a fixed timeout.
+  const extendOverrideAfterWrite = (epoch: number, pending?: Promise<unknown>) => {
+    if (!pending) {
+      return
+    }
+
+    pending.catch(() => {}).then(() => {
+      setOverride(prev =>
+        prev && prev.epoch === epoch
+          ? { ...prev, expiresAt: now() + optimisticWindowMs }
+          : prev,
+      )
+    })
+  }
 
   const normalizeTrackForOptimisticPlay = (track: Track): Track | undefined => {
     const { fixed, validation } = checkTrack(track)
@@ -134,7 +157,7 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
         : message
 
   const actions: OptimisticMessageActions = {
-    optimisticPlay: track => {
+    optimisticPlay: (track, pending) => {
       const normalizedTrack = normalizeTrackForOptimisticPlay(track)
       if (!normalizedTrack) {
         return
@@ -145,9 +168,11 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
         base?.track !== undefined && isSameTrack(base.track, normalizedTrack)
       const cachedOffset = getCachedTrackOffset(normalizedTrack.url)
 
+      const epoch = ++epochRef.current
       setOverride({
         kind: "message",
-        expiresAt: now() + optimisticWindowMs,
+        expiresAt: now() + optimisticSafetyWindowMs,
+        epoch,
         message: {
           id: base?.id ?? "optimistic-play",
           time: new Date(),
@@ -160,8 +185,9 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
           track: normalizedTrack,
         },
       })
+      extendOverrideAfterWrite(epoch, pending)
     },
-    optimisticPause: () => {
+    optimisticPause: pending => {
       const base = visibleMessage
       if (!base) {
         return
@@ -172,9 +198,11 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
           ? base.offset + getSeconds(base.time)
           : base.offset
 
+      const epoch = ++epochRef.current
       setOverride({
         kind: "message",
-        expiresAt: now() + optimisticWindowMs,
+        expiresAt: now() + optimisticSafetyWindowMs,
+        epoch,
         message: {
           ...base,
           action: Action.Pause,
@@ -182,28 +210,35 @@ export function MessageProvider({ children }: { children?: ReactNode }) {
           offset,
         },
       })
+      extendOverrideAfterWrite(epoch, pending)
     },
-    optimisticResume: () => {
+    optimisticResume: pending => {
       const base = visibleMessage
       if (!base) {
         return
       }
 
+      const epoch = ++epochRef.current
       setOverride({
         kind: "message",
-        expiresAt: now() + optimisticWindowMs,
+        expiresAt: now() + optimisticSafetyWindowMs,
+        epoch,
         message: {
           ...base,
           action: Action.Play,
           time: new Date(),
         },
       })
+      extendOverrideAfterWrite(epoch, pending)
     },
-    optimisticStop: () => {
+    optimisticStop: pending => {
+      const epoch = ++epochRef.current
       setOverride({
         kind: "none",
-        expiresAt: now() + optimisticWindowMs,
+        expiresAt: now() + optimisticSafetyWindowMs,
+        epoch,
       })
+      extendOverrideAfterWrite(epoch, pending)
     },
   }
 

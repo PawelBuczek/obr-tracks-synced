@@ -227,7 +227,7 @@ export function pause() {
   }
 
   const expectedControlId = currentMessage.id
-  writeControlAndProgress(pauseCurrentMessage(), {
+  return writeControlAndProgress(pauseCurrentMessage(), {
     expectedControlId,
   })
 }
@@ -238,7 +238,7 @@ export function resume() {
   }
 
   const expectedControlId = currentMessage.id
-  writeControlAndProgress(resumeCurrentMessage(), {
+  return writeControlAndProgress(resumeCurrentMessage(), {
     expectedControlId,
   })
 }
@@ -247,7 +247,7 @@ export function stop() {
   const activeTrack = currentMessage?.track
   stopPlayback()
 
-  clearControlAndWriteProgress(activeTrack)
+  return clearControlAndWriteProgress(activeTrack)
 }
 
 export function stopPlayback() {

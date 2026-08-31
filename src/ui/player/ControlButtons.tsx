@@ -18,8 +18,7 @@ export function ControlButtons() {
       <IconButton
         disabled={currentMessage === undefined}
         onClick={() => {
-          optimisticStop()
-          stop()
+          optimisticStop(stop())
         }}
       >
         <StopRoundedIcon fontSize="large" />
@@ -27,8 +26,7 @@ export function ControlButtons() {
       {currentMessage?.action === Action.Play ? (
         <IconButton
           onClick={() => {
-            optimisticPause()
-            pause()
+            optimisticPause(pause())
           }}
         >
           <PauseRoundedIcon fontSize="large" />
@@ -38,8 +36,7 @@ export function ControlButtons() {
           onClick={
             currentMessage
               ? () => {
-                  optimisticResume()
-                  resume()
+                  optimisticResume(resume())
                 }
               : undefined
           }
