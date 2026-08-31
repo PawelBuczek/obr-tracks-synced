@@ -6,7 +6,6 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material"
-import OBR from "@owlbear-rodeo/sdk"
 import { FuseResult } from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -17,6 +16,7 @@ import {
 import { BUILT_IN_TAGS, formatTrackTag } from "../../domain/tags"
 import { Track } from "../../domain/track"
 import { setMute as persistMute } from "../../shared/mute"
+import { showNotification } from "../../shared/notify"
 import { getSortMode, LibrarySortMode, setSortMode } from "../../shared/sortMode"
 import { getVolume, setVolume as persistVolume } from "../../shared/volume"
 import { ActionPopover, MuteButton, VolumeSlider } from "../controls"
@@ -120,7 +120,7 @@ export function App() {
   useEffect(() => {
     if (!ready) {
       const id = setTimeout(() => {
-        OBR.notification.show("Don't forget to unmute your audio.", "WARNING")
+        showNotification("Don't forget to unmute your audio.", "WARNING")
       }, 30000)
       return () => clearTimeout(id)
     }
