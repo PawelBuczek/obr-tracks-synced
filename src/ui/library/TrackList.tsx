@@ -13,7 +13,7 @@ import {
 } from "@mui/material"
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded"
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded"
-import Fuse from "fuse.js"
+import { FuseResult, FuseResultMatch } from "fuse.js"
 import { useState } from "react"
 import { formatTrackTag } from "../../domain/tags"
 import { Track } from "../../domain/track"
@@ -35,7 +35,7 @@ interface TrackCardProps {
   moveUp: (track: Track) => void
   moveDown: (track: Track) => void
   canReorder: boolean
-  matches?: ReadonlyArray<Fuse.FuseResultMatch>
+  matches?: ReadonlyArray<FuseResultMatch>
 }
 
 function TrackCard(props: TrackCardProps) {
@@ -208,7 +208,7 @@ function TrackCard(props: TrackCardProps) {
 }
 
 interface Props {
-  searchResults: Fuse.FuseResult<Track>[]
+  searchResults: FuseResult<Track>[]
   editTrack: (track: Track) => void
   confirm: (payload: ConfirmPayload) => void
   moveTrackUp: (track: Track) => void

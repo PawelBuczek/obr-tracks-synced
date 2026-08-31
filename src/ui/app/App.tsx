@@ -7,7 +7,7 @@ import {
   Typography,
 } from "@mui/material"
 import OBR from "@owlbear-rodeo/sdk"
-import Fuse from "fuse.js"
+import { FuseResult } from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
 import {
   moveTrackDownInLibrary,
@@ -46,7 +46,7 @@ export function App() {
   }, [])
 
   // track list state
-  const [searchResults, setSearchResults] = useState<Fuse.FuseResult<Track>[]>(
+  const [searchResults, setSearchResults] = useState<FuseResult<Track>[]>(
     [],
   )
   const [sortMode, setSortModeState] = useState<LibrarySortMode>(() =>

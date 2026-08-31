@@ -1,13 +1,13 @@
 import SortByAlphaRoundedIcon from "@mui/icons-material/SortByAlphaRounded"
 import { IconButton, Stack, TextField, Tooltip } from "@mui/material"
-import Fuse from "fuse.js"
+import Fuse, { FuseResult } from "fuse.js"
 import { useEffect, useMemo, useState } from "react"
 import { Track } from "../../domain/track"
 import { LibrarySortMode } from "../../shared/sortMode"
 
 interface Props {
   trackLibrary: Track[]
-  onSearch: (results: Fuse.FuseResult<Track>[]) => void
+  onSearch: (results: FuseResult<Track>[]) => void
   sortMode: LibrarySortMode
   onCycleSortMode: () => void
 }
@@ -24,9 +24,9 @@ function sortModeLabel(mode: LibrarySortMode): string {
 }
 
 function sortResults(
-  results: Fuse.FuseResult<Track>[],
+  results: FuseResult<Track>[],
   mode: LibrarySortMode,
-): Fuse.FuseResult<Track>[] {
+): FuseResult<Track>[] {
   if (mode === LibrarySortMode.NotSorted) {
     return results
   }
@@ -74,7 +74,7 @@ export function TrackSearch(props: Props) {
   }, [trackLibrary])
 
   const all = useMemo(() => {
-    return trackLibrary.map<Fuse.FuseResult<Track>>((t, i) => ({
+    return trackLibrary.map<FuseResult<Track>>((t, i) => ({
       item: t,
       refIndex: i,
     }))
