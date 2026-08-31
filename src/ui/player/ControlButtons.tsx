@@ -3,22 +3,17 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded"
 import StopRoundedIcon from "@mui/icons-material/StopRounded"
 import { ButtonGroup, IconButton } from "@mui/material"
 import { Action, pause, resume, stop } from "../../room/mb"
-import {
-  useMessage,
-  useMessageOptimisticActions,
-} from "../providers/MessageProvider"
+import { useMessage } from "../providers/MessageProvider"
 
 export function ControlButtons() {
   const currentMessage = useMessage()
-  const { optimisticPause, optimisticResume, optimisticStop } =
-    useMessageOptimisticActions()
 
   return (
     <ButtonGroup>
       <IconButton
         disabled={currentMessage === undefined}
         onClick={() => {
-          optimisticStop(stop())
+          stop()
         }}
       >
         <StopRoundedIcon fontSize="large" />
@@ -26,7 +21,7 @@ export function ControlButtons() {
       {currentMessage?.action === Action.Play ? (
         <IconButton
           onClick={() => {
-            optimisticPause(pause())
+            pause()
           }}
         >
           <PauseRoundedIcon fontSize="large" />
@@ -36,7 +31,7 @@ export function ControlButtons() {
           onClick={
             currentMessage
               ? () => {
-                  optimisticResume(resume())
+                  resume()
                 }
               : undefined
           }

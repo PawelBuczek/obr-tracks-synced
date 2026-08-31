@@ -8,9 +8,6 @@ const mocks = vi.hoisted(() => ({
   pause: vi.fn(),
   resume: vi.fn(),
   getTrackListClickAction: vi.fn(),
-  optimisticPlay: vi.fn(),
-  optimisticPause: vi.fn(),
-  optimisticResume: vi.fn(),
 }))
 
 vi.mock("../../room/mb", async () => {
@@ -34,12 +31,6 @@ vi.mock("../../room/library", () => ({
 
 vi.mock("../../ui/providers/MessageProvider", () => ({
   useMessage: vi.fn(() => undefined),
-  useMessageOptimisticActions: vi.fn(() => ({
-    optimisticPlay: mocks.optimisticPlay,
-    optimisticPause: mocks.optimisticPause,
-    optimisticResume: mocks.optimisticResume,
-    optimisticStop: vi.fn(),
-  })),
 }))
 
 const track = {
@@ -74,7 +65,7 @@ function renderTrackList(
   )
 }
 
-describe("TrackList optimistic UI on click", () => {
+describe("TrackList playback click handling", () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -87,26 +78,23 @@ describe("TrackList optimistic UI on click", () => {
 
     expect(mocks.play).toHaveBeenCalledTimes(1)
     expect(mocks.play).toHaveBeenCalledWith(track)
-    expect(mocks.optimisticPlay).not.toHaveBeenCalled()
   })
 
-  it("still applies optimistic pause for pause clicks", async () => {
+  it("calls pause directly on pause clicks", async () => {
     mocks.getTrackListClickAction.mockReturnValue("pause")
     renderTrackList()
 
     await userEvent.click(screen.getByText(track.title))
 
-    expect(mocks.optimisticPause).toHaveBeenCalledTimes(1)
     expect(mocks.pause).toHaveBeenCalledTimes(1)
   })
 
-  it("still applies optimistic resume for resume clicks", async () => {
+  it("calls resume directly on resume clicks", async () => {
     mocks.getTrackListClickAction.mockReturnValue("resume")
     renderTrackList()
 
     await userEvent.click(screen.getByText(track.title))
 
-    expect(mocks.optimisticResume).toHaveBeenCalledTimes(1)
     expect(mocks.resume).toHaveBeenCalledTimes(1)
   })
 

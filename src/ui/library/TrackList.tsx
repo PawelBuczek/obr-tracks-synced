@@ -20,10 +20,7 @@ import { Track } from "../../domain/track"
 import { getTrackListClickAction } from "../../domain/trackListActions"
 import { deleteTrackFromLibrary } from "../../room/library"
 import { pause, play, resume } from "../../room/mb"
-import {
-  useMessage,
-  useMessageOptimisticActions,
-} from "../providers/MessageProvider"
+import { useMessage } from "../providers/MessageProvider"
 import { ConfirmPayload } from "./Confirm"
 
 interface TrackCardProps {
@@ -51,7 +48,6 @@ function TrackCard(props: TrackCardProps) {
     matches,
   } = props
   const currentMessage = useMessage()
-  const { optimisticPause, optimisticResume } = useMessageOptimisticActions()
   const [contextMenu, setContextMenu] = useState<{
     mouseX: number
     mouseY: number
@@ -89,10 +85,10 @@ function TrackCard(props: TrackCardProps) {
   const handleTrackClick = () => {
     switch (getTrackListClickAction(track, currentMessage)) {
       case "resume":
-        optimisticResume(resume())
+        resume()
         return
       case "pause":
-        optimisticPause(pause())
+        pause()
         return
       default:
         play(track)
