@@ -73,6 +73,42 @@ function makeTracks(count: number) {
   }))
 }
 
+const customTagIds = [85, 86, 87, 88, 89]
+const realisticCustomTags = [
+  "customtagname01",
+  "customtagname02",
+  "customtagname03",
+  "customtagname04",
+  "customtagname05",
+]
+
+function getEncodedLibrarySizeBytes(library: unknown[]): number {
+  return new TextEncoder().encode(
+    JSON.stringify({ [libraryPath]: encodeLibrary(library) }),
+  ).length
+}
+
+function makeRealisticTracks(count: number, dropboxOnly = false) {
+  const providerUrls = [
+    "https://dl.dropboxusercontent.com/scl/fi/fl4h8fc7nx3ogaep7g3ui/adventuring.mp3?rlkey=iqp87ke0vbrgm6ucv8zu97xqw&st=kehmos3h&dl=1",
+    "https://dl.dropboxusercontent.com/scl/fi/zkr9ikc4a72kzkwc4olj0/ambient.mp3?rlkey=tluhhdm259uw9l507hhnfy96p&st=6xoi9b04&dl=1",
+    "https://dl.dropboxusercontent.com/scl/fi/edmehb8ma72k367v0pwrl/battle.mp3?rlkey=ae386mb5kgr3of18yu42xbvku&st=hfgumnkm&dl=1",
+    "https://dl.dropboxusercontent.com/scl/fi/d387z5nm7odx7rlqninyv/camp.mp3?rlkey=rr1cuqjw71q8tbozuevdl4pd5&st=8oxktmjz&dl=1",
+    "https://e.pcloud.link/publink/show?code=XZexampleMP3",
+    "https://e.pcloud.link/publink/show?code=Xa1b2C3d4Example",
+    "https://app.box.com/s/example123mp3",
+    "https://app.box.com/s/abc123xyzexample",
+  ]
+  const dropboxUrls = providerUrls.slice(0, 4)
+  const urls = dropboxOnly ? dropboxUrls : providerUrls
+
+  return Array.from({ length: count }, (_, index) => ({
+    title: `Adventure Track ${index + 1}`,
+    url: `${urls[index % urls.length]}&track=${index + 1}`,
+    tags: customTagIds.slice(0, (index % customTagIds.length) + 1),
+  }))
+}
+
 // Deflate compresses repeated characters extremely well, so use
 // non-repeating content to keep this fixture over the size cap post-compression.
 function incompressibleTag(length: number): string {
@@ -310,6 +346,34 @@ beforeEach(() => {
         ]),
       }),
     )
+  })
+
+  it("measures realistic mixed-provider and Dropbox-only library capacity", async () => {
+    const mixedProviderOutcome = await mergeLibrary(makeRealisticTracks(201))
+    const dropboxOnlyOutcome = await mergeLibrary(makeRealisticTracks(201, true))
+
+    console.info("Library capacity estimate", {
+      customTags: realisticCustomTags,
+      mixedProvider: {
+        tracks: mixedProviderOutcome.library.length,
+        bytes: getEncodedLibrarySizeBytes(mixedProviderOutcome.library),
+        rejections: mixedProviderOutcome.rejections,
+      },
+      dropboxOnly: {
+        tracks: dropboxOnlyOutcome.library.length,
+        bytes: getEncodedLibrarySizeBytes(dropboxOnlyOutcome.library),
+        rejections: dropboxOnlyOutcome.rejections,
+      },
+    })
+
+    expect(mixedProviderOutcome.library.length).toBe(200)
+    expect(mixedProviderOutcome.rejections).toEqual([
+      { reason: "library-track-limit", count: 1 },
+    ])
+    expect(dropboxOnlyOutcome.library.length).toBe(200)
+    expect(dropboxOnlyOutcome.rejections).toEqual([
+      { reason: "library-track-limit", count: 1 },
+    ])
   })
 
   it("accepts a new track when the library has 199 tracks", async () => {
