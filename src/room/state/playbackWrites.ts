@@ -37,6 +37,10 @@ export function writeControlAndProgress(
     )
 
     if (!trackStillInLibrary) {
+      console.log(
+        "[playbackWrites] writeControlAndProgress no-op: control track not in library",
+        { control, currentLibrary },
+      )
       return undefined
     }
 
@@ -44,6 +48,10 @@ export function writeControlAndProgress(
       const currentMessage = extractControlMessage(current)
 
       if (currentMessage?.id !== options.expectedControlId) {
+        console.log(
+          "[playbackWrites] writeControlAndProgress no-op: expectedControlId mismatch",
+          { expectedControlId: options.expectedControlId, currentMessage },
+        )
         return undefined
       }
     }
@@ -53,6 +61,7 @@ export function writeControlAndProgress(
       nextLibrary = withTrackOffset(nextLibrary, options.saveTrack, options.saveOffset)
     }
 
+    console.log("[playbackWrites] writeControlAndProgress writing:", { control, nextLibrary })
     return {
       [libraryPath]: encodeLibrary(nextLibrary),
       [controlPath]: control,
@@ -68,6 +77,10 @@ export function clearControlAndWriteProgress(track?: Track) {
       ? withTrackOffset(currentLibrary, track, 0)
       : currentLibrary
 
+    console.log("[playbackWrites] clearControlAndWriteProgress writing:", {
+      track,
+      nextLibrary,
+    })
     return {
       ...(nextLibrary !== currentLibrary ? { [libraryPath]: encodeLibrary(nextLibrary) } : {}),
       [controlPath]: undefined,

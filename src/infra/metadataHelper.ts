@@ -10,9 +10,12 @@ export function updateMetadataWithCurrent(
     .catch(() => {})
     .then(async () => {
       const current = await OBR.room.getMetadata()
+      console.log("[metadataHelper] getMetadata (before transform):", current)
+
       const update = await transform(current)
 
       if (!update) {
+        console.log("[metadataHelper] transform returned no update, skipping setMetadata")
         return
       }
 
@@ -27,6 +30,7 @@ export function updateMetadataWithCurrent(
         }
       }
 
+      console.log("[metadataHelper] setMetadata (full next metadata):", nextMetadata)
       await OBR.room.setMetadata(nextMetadata)
     })
 

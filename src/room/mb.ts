@@ -164,6 +164,7 @@ export function onMessage(
   callback: (message: Message | undefined) => void,
 ): () => void {
   const handler = (m: Metadata) => {
+    console.log("[mb] onMetadataChange full metadata:", m)
     const message = extractControlMessage(m)
     currentLibrary = extractLibrary(m)
 
@@ -178,8 +179,11 @@ export function onMessage(
         message.time = n
       }
 
+      console.log("[mb] currentMessage changed:", { from: currentMessage, to: message })
       currentMessage = message
       callback(currentMessage)
+    } else {
+      console.log("[mb] onMetadataChange: message unchanged, ignoring", message)
     }
   }
 
@@ -222,6 +226,7 @@ export function play(track: Track) {
 }
 
 export function pause() {
+  console.log("[mb] pause() called, currentMessage:", currentMessage)
   if (!currentMessage) {
     throw new ObrError("Unable to pause before receiving first message")
   }
@@ -233,6 +238,7 @@ export function pause() {
 }
 
 export function resume() {
+  console.log("[mb] resume() called, currentMessage:", currentMessage)
   if (!currentMessage) {
     throw new ObrError("Unable to resume before receiving first message")
   }
@@ -244,6 +250,7 @@ export function resume() {
 }
 
 export function stop() {
+  console.log("[mb] stop() called, currentMessage:", currentMessage)
   const activeTrack = currentMessage?.track
   stopPlayback()
 
