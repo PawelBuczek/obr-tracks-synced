@@ -76,10 +76,10 @@ function makeTracks(count: number) {
 const customTagIds = [85, 86, 87, 88, 89]
 const realisticCustomTags = [
   "customtagname01",
-  "customtagname02",
-  "customtagname03",
-  "customtagname04",
-  "customtagname05",
+  "dartontagmane02",
+  "perlixtagshad03",
+  "stonestagmana04",
+  "warrimtagfire05",
 ]
 
 function getEncodedLibrarySizeBytes(library: unknown[]): number {
@@ -88,23 +88,28 @@ function getEncodedLibrarySizeBytes(library: unknown[]): number {
   ).length
 }
 
-function makeRealisticTracks(count: number, dropboxOnly = false) {
-  const providerUrls = [
-    "https://dl.dropboxusercontent.com/scl/fi/fl4h8fc7nx3ogaep7g3ui/adventuring.mp3?rlkey=iqp87ke0vbrgm6ucv8zu97xqw&st=kehmos3h&dl=1",
-    "https://dl.dropboxusercontent.com/scl/fi/zkr9ikc4a72kzkwc4olj0/ambient.mp3?rlkey=tluhhdm259uw9l507hhnfy96p&st=6xoi9b04&dl=1",
-    "https://dl.dropboxusercontent.com/scl/fi/edmehb8ma72k367v0pwrl/battle.mp3?rlkey=ae386mb5kgr3of18yu42xbvku&st=hfgumnkm&dl=1",
-    "https://dl.dropboxusercontent.com/scl/fi/d387z5nm7odx7rlqninyv/camp.mp3?rlkey=rr1cuqjw71q8tbozuevdl4pd5&st=8oxktmjz&dl=1",
-    "https://e.pcloud.link/publink/show?code=XZexampleMP3",
-    "https://e.pcloud.link/publink/show?code=Xa1b2C3d4Example",
-    "https://app.box.com/s/example123mp3",
-    "https://app.box.com/s/abc123xyzexample",
-  ]
-  const dropboxUrls = providerUrls.slice(0, 4)
-  const urls = dropboxOnly ? dropboxUrls : providerUrls
+function randomLetters(length: number, seed: number): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz"
+  let value = seed
+  let result = ""
 
+  for (let index = 0; index < length; index++) {
+    value = (value * 1664525 + 1013904223) >>> 0
+    result += alphabet[value % alphabet.length]
+  }
+
+  return result
+}
+
+function makeRealisticTracks(count: number, dropboxOnly = false) {
   return Array.from({ length: count }, (_, index) => ({
-    title: `Adventure Track ${index + 1}`,
-    url: `${urls[index % urls.length]}&track=${index + 1}`,
+    title: randomLetters(15, index),
+    url:
+      dropboxOnly || index % 3 === 0
+        ? `https://dl.dropboxusercontent.com/scl/fi/${randomLetters(20, index)}/${randomLetters(15, index + 1000)}.mp3?rlkey=${randomLetters(26, index + 2000)}&st=${randomLetters(8, index + 3000)}&dl=1`
+        : index % 3 === 1
+          ? `https://e.pcloud.link/publink/show?code=X${randomLetters(15, index)}`
+          : `https://app.box.com/s/${randomLetters(15, index)}`,
     tags: customTagIds.slice(0, (index % customTagIds.length) + 1),
   }))
 }
@@ -349,30 +354,36 @@ beforeEach(() => {
   })
 
   it("measures realistic mixed-provider and Dropbox-only library capacity", async () => {
-    const mixedProviderOutcome = await mergeLibrary(makeRealisticTracks(201))
-    const dropboxOnlyOutcome = await mergeLibrary(makeRealisticTracks(201, true))
+    const mixedProviderTracks = makeRealisticTracks(201)
+    const dropboxOnlyTracks = makeRealisticTracks(201, true)
+    const mixedProviderOutcome = await mergeLibrary(mixedProviderTracks)
+    const dropboxOnlyOutcome = await mergeLibrary(dropboxOnlyTracks)
 
     console.info("Library capacity estimate", {
       customTags: realisticCustomTags,
       mixedProvider: {
         tracks: mixedProviderOutcome.library.length,
         bytes: getEncodedLibrarySizeBytes(mixedProviderOutcome.library),
-        rejections: mixedProviderOutcome.rejections,
+        rejections: JSON.stringify(mixedProviderOutcome.rejections),
       },
       dropboxOnly: {
         tracks: dropboxOnlyOutcome.library.length,
         bytes: getEncodedLibrarySizeBytes(dropboxOnlyOutcome.library),
-        rejections: dropboxOnlyOutcome.rejections,
+        rejections: JSON.stringify(dropboxOnlyOutcome.rejections),
       },
     })
 
-    expect(mixedProviderOutcome.library.length).toBe(200)
+    expect(new Set(mixedProviderTracks.map(track => track.title))).toHaveLength(201)
+    expect(new Set(mixedProviderTracks.map(track => track.url))).toHaveLength(201)
+    expect(new Set(dropboxOnlyTracks.map(track => track.title))).toHaveLength(201)
+    expect(new Set(dropboxOnlyTracks.map(track => track.url))).toHaveLength(201)
+    expect(mixedProviderOutcome.library.length).toBe(137)
     expect(mixedProviderOutcome.rejections).toEqual([
-      { reason: "library-track-limit", count: 1 },
+      { reason: "library-over-limit", count: 64 },
     ])
-    expect(dropboxOnlyOutcome.library.length).toBe(200)
+    expect(dropboxOnlyOutcome.library.length).toBe(75)
     expect(dropboxOnlyOutcome.rejections).toEqual([
-      { reason: "library-track-limit", count: 1 },
+      { reason: "library-over-limit", count: 126 },
     ])
   })
 
