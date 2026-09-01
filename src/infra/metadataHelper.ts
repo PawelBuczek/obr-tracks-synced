@@ -19,19 +19,19 @@ export function updateMetadataWithCurrent(
         return
       }
 
-      const nextMetadata = {
-        ...current,
-        ...update,
-      }
-
+      // OBR.room.setMetadata is a shallow merge/spread server-side, not a full
+      // replace: a key simply absent from the payload is left untouched, so it
+      // can never be used to delete a field. Send an explicit null instead,
+      // which the extractX() readers already treat as "absent" (isRecord check).
+      const payload: Metadata = { ...update }
       for (const key of Object.keys(update)) {
         if (update[key] === undefined) {
-          delete nextMetadata[key]
+          payload[key] = null
         }
       }
 
-      console.log("[metadataHelper] setMetadata (full next metadata):", nextMetadata)
-      await OBR.room.setMetadata(nextMetadata)
+      console.log("[metadataHelper] setMetadata (payload sent to OBR):", payload)
+      await OBR.room.setMetadata(payload)
     })
 
   return metadataWriteQueue
